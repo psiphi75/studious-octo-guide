@@ -23,13 +23,17 @@
 
 'use strict';
 
+/*
+ * TODO: Refactor this code to: config / sensors / comms.
+ */
+
 /*******************************************************************************
  *                                                                             *
  *          Configuration settings - need to be customised to requirements     *
  *                                                                             *
  *******************************************************************************/
 
-var WRC_URL = '192.168.7.2';          // The URL of the web-remote-control proxy.
+var WRC_URL = 'localhost';          // The URL of the web-remote-control proxy.
 var WRC_STATUS_UPDATE_RATE = 500;     // How often we send a status update over the network (milliseconds)
 var SENSOR_SAMPLE_RATE = 50;          // How often we check the sensor samples (milliseconds)
 //var WRC_CHANNEL = 'SomEraNdOmvAlU3';  // The channel we operate on
@@ -52,14 +56,10 @@ var obs = require('octalbonescript');
 
 // This is required to initialise i2c-1 - currently used for the compass.
 obs.i2c.open('/dev/i2c-1', 0x1e, function(data) {
-        console.log(data);
     }, function(error, wire) {
         if (error) {
             console.error(error.message);
-            return;
         }
-        console.log(wire);
-        console.log('Loaded i2c-1.');
     }
 );
 
@@ -89,10 +89,10 @@ var gps = new Serialgps('/dev/ttyO1', 9600);
 var lastStatusUpdateTime = 0;
 
 // Need to calibrate the gyro first, then we can collect data.
-gyro.calibrate(start);
-function start() {
+gyro.calibrate(function () {
     collectData();
-}
+});
+
 
 /**
  * This will asyncronously retreive the sensor data (gyro, accel and compass).
@@ -111,30 +111,27 @@ function collectData() {
         compassRaw: compass.getRawValues.bind(compass),
     }, function asyncResult(err, values) {
 
+        var status;
         if (err) {
             console.error('asyncResult():', err);
-            return;
+            status = {
+                error: err
+            };
+        } else {
+            status = {
+                gyro: util.roundVector(values.gyro, 1),
+                accel: util.roundVector(values.accel, 1),
+                compass: util.round(values.compass, 1),
+                compassRaw: util.roundVector(values.compassRaw, 0),
+                gps: lastGPS
+            };
         }
-
-        // console.log(values);
-        var status = {
-            gyro: util.roundVector(values.gyro, 1),
-            accel: util.roundVector(values.accel, 1),
-            compass: util.round(values.compass, 1),
-            compassRaw: util.roundVector(values.compassRaw, 0),
-            gps: lastGPS
-        };
-
+            
         var now = new Date().getTime();
         var elapsedTime = now - startTime;
+        setTimeout(collectData, SENSOR_SAMPLE_RATE - elapsedTime);
 
-        if (SENSOR_SAMPLE_RATE - elapsedTime <= 0) {
-            collectData();
-        } else {
-            setTimeout(collectData, SENSOR_SAMPLE_RATE - elapsedTime);
-        }
-
-        // Emit data
+        // Emit data at the status update rate
         if (now - lastStatusUpdateTime > WRC_STATUS_UPDATE_RATE) {
 
             lastStatusUpdateTime = now;
@@ -142,13 +139,15 @@ function collectData() {
 
         }
 
-        var outputStr = now + '';
-        outputStr += '\t' + util.vToStr(status.gyro);
-        outputStr += '\t' + util.vToStr(status.accel);
-        outputStr += '\t' + status.compass;
-        outputStr += '\t' + util.vToStr(status.compassRaw);
-        outputStr += '\t' + util.gpsToStr(status.gps);
-        console.log(outputStr);
+        if (!status.error) {
+            var outputStr = now + '';
+            outputStr += '\t' + util.vToStr(status.gyro);
+            outputStr += '\t' + util.vToStr(status.accel);
+            outputStr += '\t' + status.compass;
+            outputStr += '\t' + util.vToStr(status.compassRaw);
+            outputStr += '\t' + util.gpsToStr(status.gps);
+            console.log(outputStr);
+        }
     });
 }
 
@@ -177,7 +176,8 @@ var wrc = require('web-remote-control');
 var toy = wrc.createToy({ proxyUrl: WRC_URL,
                         //   channel: WRC_CHANNEL,
                           udp4: false,
-                          tcp: true });
+                          tcp: true,
+                          log: function() {}});
 
 // Should wait until we are registered before doing anything else
 toy.on('register', function() {
@@ -186,7 +186,9 @@ toy.on('register', function() {
 
 // Ping the proxy and get the response time (in milliseconds)
 toy.ping(function (time) {
-    console.log('Ping time to proxy (ms):', time);
+    if (time > 0) {
+        console.log('Ping time to proxy (ms):', time);
+    }
 });
 
 // Listens to commands from the controller
