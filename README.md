@@ -11,16 +11,24 @@ The following items are required for this project to run out-of-the-box.  You ca
 - A serial GPS
 - A working GPRS modem
 
-## Getting started
+## Installing on your BeagleBone
 
-On your BeagleBone run
+On your BeagleBone's command-line run the following commands.  This will download
+the source code and install all the JavaScript (NodeJS) dependencies.  It will
+take a few minutes.
+
 ```bash
 git clone https://github.com/psiphi75/studious-octo-guide
 cd studious-octo-guide
 npm install
-[update rc.local]
-
 ```
+
+## Running the code
+
+
+
+
 # todo
+update rc.local
 document booting
 create wrc server script and documentation (npm run server??)
