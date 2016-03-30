@@ -31,7 +31,7 @@
 
 var WRC_URL = '192.168.7.2';          // The URL of the web-remote-control proxy.
 var WRC_STATUS_UPDATE_RATE = 500;     // How often we send a status update over the network (milliseconds)
-var SENSOR_SAMPLE_RATE = 20;          // How often we check the sensor samples (milliseconds)
+var SENSOR_SAMPLE_RATE = 50;          // How often we check the sensor samples (milliseconds)
 //var WRC_CHANNEL = 'SomEraNdOmvAlU3';  // The channel we operate on
 
 var SERVO_PIN_1 = 'P9_16';
@@ -49,6 +49,20 @@ if (typeof process.env.AUTO_LOAD_CAPE === 'undefined') {
     process.env.AUTO_LOAD_CAPE = 0;
 }
 var obs = require('octalbonescript');
+
+// This is required to initialise i2c-1 - currently used for the compass.
+obs.i2c.open('/dev/i2c-1', 0x1e, function(data) {
+        console.log(data);
+    }, function(error, wire) {
+        if (error) {
+            console.error(error.message);
+            return;
+        }
+        console.log(wire);
+        console.log('Loaded i2c-1.');
+    }
+);
+
 var i2c = require('i2c-bus');
 var async = require('async');
 var util = require('./util');
