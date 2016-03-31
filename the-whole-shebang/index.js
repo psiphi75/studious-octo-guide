@@ -33,10 +33,12 @@
  *                                                                             *
  *******************************************************************************/
 
-var WRC_URL = 'localhost';          // The URL of the web-remote-control proxy.
-var WRC_STATUS_UPDATE_RATE = 500;     // How often we send a status update over the network (milliseconds)
-var SENSOR_SAMPLE_RATE = 50;          // How often we check the sensor samples (milliseconds)
-//var WRC_CHANNEL = 'SomEraNdOmvAlU3';  // The channel we operate on
+console.log('Starting the-whole-shebang')
+
+var WRC_URL = process.env.WRC_URL || 'localhost';          // The URL of the web-remote-control proxy.
+var WRC_STATUS_UPDATE_RATE = 20;     // How often we send a status update over the network (milliseconds)
+var SENSOR_SAMPLE_RATE = 20;          // How often we check the sensor samples (milliseconds)
+// var WRC_CHANNEL = 'ENTER_YOUR_CHANNEL';  // The channel we operate on
 
 var SERVO_PIN_1 = 'P9_16';
 var SERVO_PIN_2 = 'P8_19';
