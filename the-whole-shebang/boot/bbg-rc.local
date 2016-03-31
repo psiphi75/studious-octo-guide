@@ -32,18 +32,22 @@
 #
 
 NODE=/usr/bin/node
-SCRIPT_DIR=/root/brain
+LOG_DIR=/var/lib/cloud9
+SCRIPT_DIR=/var/lib/cloud9/studious-octo-guide/the-whole-shebang
+
+export WRC_URL=[IP address of proxy server]
+export AUTO_LOAD_CAPE=0 
 
 # 1) Load the necessary components
-AUTO_LOAD_CAPE=0 ${NODE} ${SCRIPT_DIR}/boot/boot.js &>> /root/node-boot.log
+${NODE} ${SCRIPT_DIR}/boot/boot.js &>> ${LOG_DIR}/the-whole-shebang-boot.log
 
 # 2) Enable the network (PPP)
 sleep 2
 pon
 
-# 3) Start the proxy afer waiting for a bit
+# 3) Start the device afer waiting for a bit
 sleep 5
 cd ${SCRIPT_DIR}
-AUTO_LOAD_CAPE=0 /usr/local/bin/nodemon index.js &>> /root/brain.log &
+/usr/local/bin/nodemon index.js &>> ${LOG_DIR}/the-whole-shebang.log &
 
 exit 0

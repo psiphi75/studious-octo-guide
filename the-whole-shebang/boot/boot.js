@@ -51,18 +51,14 @@ enableSerial('/dev/ttyO2');
 
 // This is required to initialise i2c-1 - currently used for the compass.
 obs.i2c.open('/dev/i2c-1', 0x1e, function(data) {
-        console.log(data);
     }, function(error, wire) {
         if (error) {
             console.error(error.message);
             return;
         }
-        console.log(wire);
         console.log('Loaded i2c-1.');
     }
 );
-
-console.log('boot.js done');
 
 
 function enableSerial(port) {

@@ -33,6 +33,8 @@ npm run
 
 This will start 2 node processes on your BeagleBone:
  - The first will be the [web-remote-control](https://www.npmjs.com/package/web-remote-control) Proxy, this creates a web-server and proxy such that you can interact with the device in real-time, as well as get status updates from the device.
+   - http://192.168.7.2:8888/
+-
  - The other will run the `index.js` file in the `the-whole-shebang/` folder. This will run the main bit of code to collect data from the sensors and send status updates to the Proxy.
 
 
