@@ -1,20 +1,21 @@
 {
-  "name": "studious-octo-guide",
-  "version": "0.0.1",
-  "main": "the-whole-shebang/index.js",
-  "scripts": {
-    "start": "node the-whole-shebang/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Simon M. Werner",
-  "private": true,
-  "dependencies": {
-    "accelerometer-mma7660fc": "^0.6.1",
-    "async": "^1.5.2",
-    "compass-hmc5883l": "^0.9.5",
-    "gyroscope-itg3200 ": "^0.5.5",
-    "super-duper-serial-gps-system": "^0.5.2",
-    "web-remote-control": "^1.7.4",
-    "geomagnetism": "^0.0.2"
-  }
+    "name": "studious-octo-guide",
+    "version": "0.0.1",
+    "main": "the-whole-shebang/index.js",
+    "scripts": {
+        "start": "node the-whole-shebang/index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Simon M. Werner",
+    "private": true,
+    "dependencies": {
+        "accelerometer-mma7660fc": "^0.6.1",
+        "async": "^1.5.2",
+        "compass-hmc5883l": "^0.9.5",
+        "gyroscope-itg3200 ": "^0.5.5",
+        "super-duper-serial-gps-system": "^0.5.2",
+        "web-remote-control": "^1.7.4",
+        "geomagnetism": "^0.0.2",
+        "octalbonescript": "^1.1.2"
+    }
 }

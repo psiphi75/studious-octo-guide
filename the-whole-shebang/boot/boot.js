@@ -50,13 +50,13 @@ enableSerial('/dev/ttyO1');
 enableSerial('/dev/ttyO2');
 
 // This is required to initialise i2c-1 - currently used for the compass.
-obs.i2c.open('/dev/i2c-1', 0x1e, function(data) {
-    }, function(error, wire) {
+obs.i2c.open('/dev/i2c-1', 0x1e, function() {
+    }, function(error) {
         if (error) {
             console.error(error.message);
-            return;
+        } else {
+            console.log('Loaded i2c-1.');
         }
-        console.log('Loaded i2c-1.');
     }
 );
 

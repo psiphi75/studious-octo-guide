@@ -35,7 +35,7 @@
 
 var WRC_URL = process.env.WRC_URL || 'localhost';   // The URL of the web-remote-control proxy.
 var WRC_STATUS_UPDATE_RATE = 500;                   // How often we send a status update over the network (milliseconds)
-var SENSOR_SAMPLE_RATE = 100;                       // How often we check the sensor samples (milliseconds)
+var SENSOR_SAMPLE_RATE = 20;                        // How often we check the sensor samples (milliseconds)
 var WRC_CHANNEL = '23';                             // The channel we operate on
 
 var SERVO_PIN_1 = 'P9_16';
@@ -124,10 +124,7 @@ function collectData() {
     async.parallel({
         gyro: gyro.getValues.bind(gyro),
         accel: accelerometer.getValues.bind(accelerometer),
-        compass: function (callback) {
-            compass.getHeadingDegrees('x', 'y', callback);
-        },
-        compassRaw: compass.getRawValues.bind(compass),
+        compassRaw: compass.getRawValues.bind(compass)
     }, function asyncResult(err, values) {
 
         var status;
@@ -137,6 +134,8 @@ function collectData() {
                 error: err
             };
         } else {
+
+            values.compass = compass.calcHeadingDegrees('x', 'y', values.compassRaw);
             status = {
                 gyro: util.roundVector(values.gyro, 1),
                 accel: util.roundVector(values.accel, 1),
@@ -154,8 +153,7 @@ function collectData() {
         if (now - lastStatusUpdateTime > WRC_STATUS_UPDATE_RATE) {
 
             lastStatusUpdateTime = now;
-//FIXME: Uncomment this
-//            toy.status(status);
+            toy.status(status);
 
         }
 
@@ -187,56 +185,56 @@ gps.on('position', function(data) {
  *                                                                             *
  *******************************************************************************/
 
-// // Set up the two servos.
-// var Servo = require('./Servo');
-// var servo1 = new Servo(obs, SERVO_PIN_1, function () {});
-// var servo2 = new Servo(obs, SERVO_PIN_2, function () {});
-//
-// var wrc = require('web-remote-control');
-// var toy = wrc.createToy({ proxyUrl: WRC_URL,
-//                           channel: WRC_CHANNEL,
-//                           udp4: true,
-//                           tcp: false,
-// //                          log: function() {}
-// });
-//
-// // Should wait until we are registered before doing anything else
-// toy.on('register', function() {
-//     console.log('Registered with proxy server:', WRC_URL);
-// });
-//
-// // Ping the proxy and get the response time (in milliseconds)
-// toy.ping(function (time) {
-//     if (time > 0) {
-//         console.log('Ping time to proxy (ms):', time);
-//     }
-// });
-//
-// // Listens to commands from the controller
-// toy.on('command', function(command) {
-//
-//     var val1 = adjust(command.x);
-//     var val2 = adjust(command.y);
-//
-//     servo1.set(val1, getServoSetCB(1, val1));
-//     servo2.set(val2, getServoSetCB(2, val2));
-//
-//     function adjust(val) {
-//         val += 1.01;
-//         val *= 0.075;
-//         return val;
-//     }
-//
-//     function getServoSetCB(servoNum, val) {
-//         return function servoSetCB(err) {
-//             if (err) {
-//                 console.error('servoSetCB: error for servo ' + servoNum + ': ', servoNum);
-//                 return;
-//             }
-//         };
-//     }
-// });
-//
-// toy.on('error', function(err) {
-//     console.error(err);
-// });
+// Set up the two servos.
+var Servo = require('./Servo');
+var servo1 = new Servo(obs, SERVO_PIN_1, function () {});
+var servo2 = new Servo(obs, SERVO_PIN_2, function () {});
+
+var wrc = require('web-remote-control');
+var toy = wrc.createToy({ proxyUrl: WRC_URL,
+                          channel: WRC_CHANNEL,
+                          udp4: true,
+                          tcp: false,
+//                          log: function() {}
+});
+
+// Should wait until we are registered before doing anything else
+toy.on('register', function() {
+    console.log('Registered with proxy server:', WRC_URL);
+});
+
+// Ping the proxy and get the response time (in milliseconds)
+toy.ping(function (time) {
+    if (time > 0) {
+        console.log('Ping time to proxy (ms):', time);
+    }
+});
+
+// Listens to commands from the controller
+toy.on('command', function(command) {
+
+    var val1 = adjust(command.x);
+    var val2 = adjust(command.y);
+
+    servo1.set(val1, getServoSetCB(1, val1));
+    servo2.set(val2, getServoSetCB(2, val2));
+
+    function adjust(val) {
+        val += 1.01;
+        val *= 0.075;
+        return val;
+    }
+
+    function getServoSetCB(servoNum/*, val*/) {
+        return function servoSetCB(err) {
+            if (err) {
+                console.error('servoSetCB: error for servo ' + servoNum + ': ', servoNum);
+                return;
+            }
+        };
+    }
+});
+
+toy.on('error', function(err) {
+    console.error(err);
+});
