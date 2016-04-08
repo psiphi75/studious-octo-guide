@@ -33,15 +33,23 @@
  *                                                                             *
  *******************************************************************************/
 
-console.log('Starting the-whole-shebang')
-
-var WRC_URL = process.env.WRC_URL || 'localhost';          // The URL of the web-remote-control proxy.
-var WRC_STATUS_UPDATE_RATE = 20;     // How often we send a status update over the network (milliseconds)
-var SENSOR_SAMPLE_RATE = 20;          // How often we check the sensor samples (milliseconds)
-// var WRC_CHANNEL = 'ENTER_YOUR_CHANNEL';  // The channel we operate on
+var WRC_URL = process.env.WRC_URL || 'localhost';   // The URL of the web-remote-control proxy.
+var WRC_STATUS_UPDATE_RATE = 500;                   // How often we send a status update over the network (milliseconds)
+var SENSOR_SAMPLE_RATE = 100;                       // How often we check the sensor samples (milliseconds)
+var WRC_CHANNEL = '23';                             // The channel we operate on
 
 var SERVO_PIN_1 = 'P9_16';
 var SERVO_PIN_2 = 'P8_19';
+
+// Required for the compass to determine true north (from the magnetic
+// declination).  The latitude / longitude values can be approximate.
+var DEFAULT_LATITUDE = 174.2;
+var DEFAULT_LONGITUDE = -36.4;
+var geomagnetism = require('geomagnetism');
+var geo = geomagnetism.model().point([DEFAULT_LONGITUDE, DEFAULT_LATITUDE]);
+var declination = geo.decl;
+
+console.log('Starting the-whole-shebang.  Proxy=' + WRC_URL);
 
 
 /*******************************************************************************
@@ -57,10 +65,10 @@ if (typeof process.env.AUTO_LOAD_CAPE === 'undefined') {
 var obs = require('octalbonescript');
 
 // This is required to initialise i2c-1 - currently used for the compass.
-obs.i2c.open('/dev/i2c-1', 0x1e, function(data) {
-    }, function(error, wire) {
+obs.i2c.open('/dev/i2c-1', 0x1e, function() {
+    }, function(error) {
         if (error) {
-            console.error(error.message);
+            console.error(error);
         }
     }
 );
@@ -70,13 +78,22 @@ var async = require('async');
 var util = require('./util');
 
 var Gyroscope = require('gyroscope-itg3200');
-var gyro = new Gyroscope(2, { sampleRate: SENSOR_SAMPLE_RATE, i2c: i2c });
+var gyro = new Gyroscope(2, {
+    i2c: i2c,
+    sampleRate: SENSOR_SAMPLE_RATE
+});
 
+// i2c-1 needs to be enabled at boot time.
 var Compass = require('compass-hmc5883l');
-var compass = new Compass(1);   // This is enabled at boot time
+var compass = new Compass(1, {
+    i2c: i2c,
+    sampleRate: '30',
+    scale: '0.88',
+    declination: declination
+});
 
 var MMA7660fc = require('accelerometer-mma7660fc');
-var accelerometer = new MMA7660fc(2);
+var accelerometer = new MMA7660fc(2, { i2c: i2c });
 
 var Serialgps = require('super-duper-serial-gps-system');
 var gps = new Serialgps('/dev/ttyO1', 9600);
@@ -128,7 +145,7 @@ function collectData() {
                 gps: lastGPS
             };
         }
-            
+
         var now = new Date().getTime();
         var elapsedTime = now - startTime;
         setTimeout(collectData, SENSOR_SAMPLE_RATE - elapsedTime);
@@ -137,7 +154,8 @@ function collectData() {
         if (now - lastStatusUpdateTime > WRC_STATUS_UPDATE_RATE) {
 
             lastStatusUpdateTime = now;
-            toy.status(status);
+//FIXME: Uncomment this
+//            toy.status(status);
 
         }
 
@@ -169,56 +187,56 @@ gps.on('position', function(data) {
  *                                                                             *
  *******************************************************************************/
 
-// Set up the two servos.
-var Servo = require('./Servo');
-var servo1 = new Servo(obs, SERVO_PIN_1, function () {});
-var servo2 = new Servo(obs, SERVO_PIN_2, function () {});
-
-var wrc = require('web-remote-control');
-var toy = wrc.createToy({ proxyUrl: WRC_URL,
-                        //   channel: WRC_CHANNEL,
-                          udp4: false,
-                          tcp: true,
-                          log: function() {}});
-
-// Should wait until we are registered before doing anything else
-toy.on('register', function() {
-    console.log('Registered with proxy server:', WRC_URL);
-});
-
-// Ping the proxy and get the response time (in milliseconds)
-toy.ping(function (time) {
-    if (time > 0) {
-        console.log('Ping time to proxy (ms):', time);
-    }
-});
-
-// Listens to commands from the controller
-toy.on('command', function(command) {
-    var val1 = adjust(command.x);
-    var val2 = adjust(command.y);
-
-    servo1.set(val1, getServoSetCB(1, val1));
-    servo2.set(val2, getServoSetCB(2, val2));
-
-    // console.log('The controller sent me this command: ', command);
-    function adjust(val) {
-        val += 1.01;
-        val *= 0.075;
-        return val;
-    }
-
-    function getServoSetCB(servoNum, val) {
-        return function servoSetCB(err) {
-            if (err) {
-                console.error('servoSetCB: error for servo ' + servoNum + ': ', servoNum);
-                return;
-            }
-            console.log('Servo ' + servoNum + ': ', val);
-        };
-    }
-});
-
-toy.on('error', function(err) {
-    console.error(err);
-});
+// // Set up the two servos.
+// var Servo = require('./Servo');
+// var servo1 = new Servo(obs, SERVO_PIN_1, function () {});
+// var servo2 = new Servo(obs, SERVO_PIN_2, function () {});
+//
+// var wrc = require('web-remote-control');
+// var toy = wrc.createToy({ proxyUrl: WRC_URL,
+//                           channel: WRC_CHANNEL,
+//                           udp4: true,
+//                           tcp: false,
+// //                          log: function() {}
+// });
+//
+// // Should wait until we are registered before doing anything else
+// toy.on('register', function() {
+//     console.log('Registered with proxy server:', WRC_URL);
+// });
+//
+// // Ping the proxy and get the response time (in milliseconds)
+// toy.ping(function (time) {
+//     if (time > 0) {
+//         console.log('Ping time to proxy (ms):', time);
+//     }
+// });
+//
+// // Listens to commands from the controller
+// toy.on('command', function(command) {
+//
+//     var val1 = adjust(command.x);
+//     var val2 = adjust(command.y);
+//
+//     servo1.set(val1, getServoSetCB(1, val1));
+//     servo2.set(val2, getServoSetCB(2, val2));
+//
+//     function adjust(val) {
+//         val += 1.01;
+//         val *= 0.075;
+//         return val;
+//     }
+//
+//     function getServoSetCB(servoNum, val) {
+//         return function servoSetCB(err) {
+//             if (err) {
+//                 console.error('servoSetCB: error for servo ' + servoNum + ': ', servoNum);
+//                 return;
+//             }
+//         };
+//     }
+// });
+//
+// toy.on('error', function(err) {
+//     console.error(err);
+// });

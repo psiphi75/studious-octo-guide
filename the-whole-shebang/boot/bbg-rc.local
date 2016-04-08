@@ -31,23 +31,44 @@
 #   3) Start our connection to the proxy server
 #
 
+
 NODE=/usr/bin/node
 LOG_DIR=/var/lib/cloud9
 SCRIPT_DIR=/var/lib/cloud9/studious-octo-guide/the-whole-shebang
 
-export WRC_URL=[IP address of proxy server]
+BOOT=${LOG_DIR}/the-whole-shebang-boot.log
+LOG=${LOG_DIR}/the-whole-shebang.log
+ERROR=${LOG_DIR}/the-whole-shebang.error.log
+
+exec > ${BOOT}
+exec 2>&1
+
+export WRC_URL=[LOAD YOUR URL]
 export AUTO_LOAD_CAPE=0 
 
 # 1) Load the necessary components
-${NODE} ${SCRIPT_DIR}/boot/boot.js &>> ${LOG_DIR}/the-whole-shebang-boot.log
+echo "Load the necessary components"
+${NODE} ${SCRIPT_DIR}/boot/boot.js
+
 
 # 2) Enable the network (PPP)
+echo "Enable the network (PPP)"
 sleep 2
 pon
 
 # 3) Start the device afer waiting for a bit
-sleep 5
+echo "Start the device afer waiting for a bit"
+sleep 10
 cd ${SCRIPT_DIR}
-/usr/local/bin/nodemon index.js &>> ${LOG_DIR}/the-whole-shebang.log &
+/usr/local/bin/forever start        \
+    --append         \
+    --watchDirectory ${SCRIPT_DIR}      \
+    -l $LOG          \
+    -o $LOG          \
+    -e $ERROR    \
+     index.js
+
+echo "Pinging google"
+ping -c 4 google.com
 
 exit 0
