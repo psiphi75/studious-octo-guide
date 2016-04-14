@@ -11,11 +11,12 @@
     "dependencies": {
         "accelerometer-mma7660fc": "^0.6.1",
         "async": "^1.5.2",
-        "compass-hmc5883l": "^0.9.5",
-        "gyroscope-itg3200 ": "^0.5.5",
-        "super-duper-serial-gps-system": "^0.5.2",
-        "web-remote-control": "^1.7.4",
+        "compass-hmc5883l": "^1.0.0",
         "geomagnetism": "^0.0.2",
-        "octalbonescript": "^1.1.2"
+        "gyroscope-itg3200 ": "^0.5.5",
+        "i2c-bus": "^1.0.2",
+        "octalbonescript": "^1.1.2",
+        "super-duper-serial-gps-system": "^0.5.2",
+        "web-remote-control": "^1.7.4"
     }
 }

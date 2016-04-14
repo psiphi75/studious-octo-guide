@@ -34,9 +34,9 @@
  *******************************************************************************/
 
 var WRC_URL = process.env.WRC_URL || 'localhost';   // The URL of the web-remote-control proxy.
+var WRC_CHANNEL = process.env.WRC_CHANNEL || '23';      // The channel we operate on
 var WRC_STATUS_UPDATE_RATE = 500;                   // How often we send a status update over the network (milliseconds)
 var SENSOR_SAMPLE_RATE = 20;                        // How often we check the sensor samples (milliseconds)
-var WRC_CHANNEL = '23';                             // The channel we operate on
 
 var SERVO_PIN_1 = 'P9_16';
 var SERVO_PIN_2 = 'P8_19';
@@ -49,7 +49,7 @@ var geomagnetism = require('geomagnetism');
 var geo = geomagnetism.model().point([DEFAULT_LONGITUDE, DEFAULT_LATITUDE]);
 var declination = geo.decl;
 
-console.log('Starting the-whole-shebang.  Proxy=' + WRC_URL);
+console.log('Starting the-whole-shebang.  Proxy=' + WRC_URL + ' on channel "' + WRC_CHANNEL + '"');
 
 
 /*******************************************************************************
@@ -63,8 +63,10 @@ if (typeof process.env.AUTO_LOAD_CAPE === 'undefined') {
     process.env.AUTO_LOAD_CAPE = 0;
 }
 var obs = require('octalbonescript');
+var i2c = require('i2c-bus');
+var async = require('async');
+var util = require('./util');
 
-// This is required to initialise i2c-1 - currently used for the compass.
 obs.i2c.open('/dev/i2c-1', 0x1e, function() {
     }, function(error) {
         if (error) {
@@ -73,17 +75,12 @@ obs.i2c.open('/dev/i2c-1', 0x1e, function() {
     }
 );
 
-var i2c = require('i2c-bus');
-var async = require('async');
-var util = require('./util');
-
 var Gyroscope = require('gyroscope-itg3200');
 var gyro = new Gyroscope(2, {
     i2c: i2c,
     sampleRate: SENSOR_SAMPLE_RATE
 });
 
-// i2c-1 needs to be enabled at boot time.
 var Compass = require('compass-hmc5883l');
 var compass = new Compass(1, {
     i2c: i2c,
@@ -106,6 +103,9 @@ var gps = new Serialgps('/dev/ttyO1', 9600);
  *******************************************************************************/
 
 var lastStatusUpdateTime = 0;
+var lastServo1Value;
+var lastServo2Value;
+
 
 // Need to calibrate the gyro first, then we can collect data.
 gyro.calibrate(function () {
@@ -135,7 +135,7 @@ function collectData() {
             };
         } else {
 
-            values.compass = compass.calcHeadingDegrees('x', 'y', values.compassRaw);
+            values.compass = compass.calcHeadingDegrees('x', 'z', values.compassRaw);
             status = {
                 gyro: util.roundVector(values.gyro, 1),
                 accel: util.roundVector(values.accel, 1),
@@ -159,11 +159,13 @@ function collectData() {
 
         if (!status.error) {
             var outputStr = now + '';
-            outputStr += '\t' + util.vToStr(status.gyro);
-            outputStr += '\t' + util.vToStr(status.accel);
-            outputStr += '\t' + status.compass;
-            outputStr += '\t' + util.vToStr(status.compassRaw);
-            outputStr += '\t' + util.gpsToStr(status.gps);
+            outputStr += '\t' + util.round(lastServo1Value);
+            outputStr += '\t' + util.round(lastServo2Value);
+            outputStr += '\t' + util.vToStr(util.roundVector(values.gyro, 6));
+            outputStr += '\t' + util.vToStr(util.roundVector(values.accel, 6));
+            outputStr += '\t' + util.round(values.compass);
+            outputStr += '\t' + util.vToStr(util.roundVector(values.compassRaw, 6));
+            outputStr += '\t' + util.gpsToStr(values.gps);
             console.log(outputStr);
         }
     });
@@ -215,6 +217,9 @@ toy.on('command', function(command) {
 
     var val1 = adjust(command.x);
     var val2 = adjust(command.y);
+
+    lastServo1Value = val1;
+    lastServo2Value = val2;
 
     servo1.set(val1, getServoSetCB(1, val1));
     servo2.set(val2, getServoSetCB(2, val2));
