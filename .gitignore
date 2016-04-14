@@ -1,3 +1,3 @@
 node_modules
 npm-debug.log
-the-whole-shebang/config/production.json*
+config/production.json*

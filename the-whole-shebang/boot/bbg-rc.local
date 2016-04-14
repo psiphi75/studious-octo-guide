@@ -31,8 +31,6 @@
 #   3) Start our connection to the proxy server
 #
 
-exec > ${BOOT}
-exec 2>&1
 
 NODE=/usr/bin/node
 LOG_DIR=/root/logs
@@ -41,6 +39,9 @@ SCRIPT_DIR=/root/studious-octo-guide/the-whole-shebang
 BOOT=${LOG_DIR}/the-whole-shebang-boot.log
 LOG=${LOG_DIR}/the-whole-shebang.log
 ERROR=${LOG_DIR}/the-whole-shebang.error.log
+
+exec > ${BOOT}
+exec 2>&1
 
 export AUTO_LOAD_CAPE=0
 export NODE_ENV=production
