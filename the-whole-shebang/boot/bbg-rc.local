@@ -31,44 +31,46 @@
 #   3) Start our connection to the proxy server
 #
 
+exec > ${BOOT}
+exec 2>&1
 
 NODE=/usr/bin/node
-LOG_DIR=/var/lib/cloud9
-SCRIPT_DIR=/var/lib/cloud9/studious-octo-guide/the-whole-shebang
+LOG_DIR=/root/logs
+SCRIPT_DIR=/root/studious-octo-guide/the-whole-shebang
 
 BOOT=${LOG_DIR}/the-whole-shebang-boot.log
 LOG=${LOG_DIR}/the-whole-shebang.log
 ERROR=${LOG_DIR}/the-whole-shebang.error.log
 
-exec > ${BOOT}
-exec 2>&1
+export AUTO_LOAD_CAPE=0
+export NODE_ENV=production
 
-export WRC_URL=[LOAD YOUR URL]
-export AUTO_LOAD_CAPE=0 
 
-# 1) Load the necessary components
-echo "Load the necessary components"
+echo "### 1) Load the necessary components"
 ${NODE} ${SCRIPT_DIR}/boot/boot.js
 
 
-# 2) Enable the network (PPP)
-echo "Enable the network (PPP)"
 sleep 2
+echo "### 2) Enable the network (PPP)"
 pon
 
-# 3) Start the device afer waiting for a bit
-echo "Start the device afer waiting for a bit"
+
 sleep 10
+echo "### 3) Start the device afer waiting for a bit"
 cd ${SCRIPT_DIR}
-/usr/local/bin/forever start        \
-    --append         \
+/usr/bin/forever start  \
+    --append            \
     --watchDirectory ${SCRIPT_DIR}      \
-    -l $LOG          \
-    -o $LOG          \
-    -e $ERROR    \
+    -l $LOG             \
+    -o $LOG             \
+    -e $ERROR           \
+    --uid "tws"         \
      index.js
 
-echo "Pinging google"
+
+sleep 5
+echo "### 4) Pinging google"
 ping -c 4 google.com
+
 
 exit 0

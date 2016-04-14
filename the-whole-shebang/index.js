@@ -33,23 +33,38 @@
  *                                                                             *
  *******************************************************************************/
 
-var WRC_URL = process.env.WRC_URL || 'localhost';   // The URL of the web-remote-control proxy.
-var WRC_CHANNEL = process.env.WRC_CHANNEL || '23';      // The channel we operate on
-var WRC_STATUS_UPDATE_RATE = 500;                   // How often we send a status update over the network (milliseconds)
-var SENSOR_SAMPLE_RATE = 20;                        // How often we check the sensor samples (milliseconds)
+var config = require('config');
 
-var SERVO_PIN_1 = 'P9_16';
-var SERVO_PIN_2 = 'P8_19';
+var WRC_URL = config.get('web-remote-control.url');
+var WRC_CHANNEL = config.get('web-remote-control.channel');
+var WRC_STATUS_UPDATE_RATE = config.get('web-remote-control.update-rate');
+
+var SENSOR_SAMPLE_RATE = config.get('sample-rate');
+
+var SERVO_PIN_1 = config.get('servos.1');
+var SERVO_PIN_2 = config.get('servos.2');
+
 
 // Required for the compass to determine true north (from the magnetic
 // declination).  The latitude / longitude values can be approximate.
-var DEFAULT_LATITUDE = 174.2;
-var DEFAULT_LONGITUDE = -36.4;
-var geomagnetism = require('geomagnetism');
-var geo = geomagnetism.model().point([DEFAULT_LONGITUDE, DEFAULT_LATITUDE]);
-var declination = geo.decl;
+var DEFAULT_LATITUDE = config.get('location.latitude');
+var DEFAULT_LONGITUDE = config.get('location.longitude');
+var declination = 0;
 
-console.log('Starting the-whole-shebang.  Proxy=' + WRC_URL + ' on channel "' + WRC_CHANNEL + '"');
+if (DEFAULT_LATITUDE && DEFAULT_LONGITUDE) {
+    var geomagnetism = require('geomagnetism');
+    var geo = geomagnetism.model().point([DEFAULT_LONGITUDE, DEFAULT_LATITUDE]);
+    declination = geo.decl;
+}
+
+
+/*
+ * Output config settings - we will pick these up later.
+ */
+console.log('Starting the-whole-shebang:');
+console.log('--- CONFIG START ---');
+console.log(JSON.stringify(config));
+console.log('--- CONFIG END ---');
 
 
 /*******************************************************************************
@@ -159,11 +174,11 @@ function collectData() {
 
         if (!status.error) {
             var outputStr = now + '';
-            outputStr += '\t' + util.round(lastServo1Value);
-            outputStr += '\t' + util.round(lastServo2Value);
+            outputStr += '\t' + util.round(lastServo1Value, 5);
+            outputStr += '\t' + util.round(lastServo2Value, 5);
             outputStr += '\t' + util.vToStr(util.roundVector(values.gyro, 6));
             outputStr += '\t' + util.vToStr(util.roundVector(values.accel, 6));
-            outputStr += '\t' + util.round(values.compass);
+            outputStr += '\t' + util.round(values.compass, 5);
             outputStr += '\t' + util.vToStr(util.roundVector(values.compassRaw, 6));
             outputStr += '\t' + util.gpsToStr(values.gps);
             console.log(outputStr);

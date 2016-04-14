@@ -33,8 +33,9 @@ module.exports = {
      */
     round: function (val, dp) {
         if (typeof val !== 'number') {
-            return 'undef';
+            return val;
         }
+        dp = dp || 5;
         var pow = Math.pow(10, dp);
         return Math.round(val * pow) / pow;
     },
@@ -88,7 +89,7 @@ module.exports = {
         if (v && typeof v.latitude === 'number') {
             return this.round(v.latitude, 5).toString() + '\t' + this.round(v.longitude, 5).toString();
         } else {
-            return 'no-gps';
+            return v;
         }
     }
 
