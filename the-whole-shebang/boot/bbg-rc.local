@@ -63,7 +63,6 @@ cd ${SCRIPT_DIR}
     --append            \
     --watchDirectory ${SCRIPT_DIR}      \
     -l $LOG             \
-    -o $LOG             \
     -e $ERROR           \
     --uid "tws"         \
      index.js

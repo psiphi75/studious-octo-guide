@@ -61,9 +61,12 @@ if (DEFAULT_LATITUDE && DEFAULT_LONGITUDE) {
 /*
  * Output config settings - we will pick these up later.
  */
+var header = config.util.cloneDeep(config);
+header.timestamp = new Date().getTime();
+header.fields = ['time', 'servo.1', 'servo.2', 'gyro.x', 'gyro.y', 'gyro.z', 'accel.x', 'accel.y', 'accel.z', 'compass.heading', 'compass.x', 'compass.y', 'compass.z', 'gps.lat', 'gps.lon'];
 console.log('Starting the-whole-shebang:');
 console.log('--- CONFIG START ---');
-console.log(JSON.stringify(config));
+console.log(JSON.stringify(header));
 console.log('--- CONFIG END ---');
 
 
@@ -173,6 +176,9 @@ function collectData() {
         }
 
         if (!status.error) {
+            /*
+             * Note: Order matters here.  See header.fields.
+             */
             var outputStr = now + '';
             outputStr += '\t' + util.round(lastServo1Value, 5);
             outputStr += '\t' + util.round(lastServo2Value, 5);
@@ -230,8 +236,26 @@ toy.ping(function (time) {
 // Listens to commands from the controller
 toy.on('command', function(command) {
 
-    var val1 = adjust(command.x);
-    var val2 = adjust(command.y);
+    switch (command.action) {
+        case 'note':
+            console.log('NOTE: ', JSON.stringify(command.note));
+            break;
+        case 'move':
+            actionMove(command);
+            break;
+        default:
+            console.error('ERROR - invalid command', JSON.stringify(command));
+    }
+
+});
+
+toy.on('error', console.error);
+
+
+function actionMove(command) {
+
+    var val1 = adjust(command.servo1);
+    var val2 = adjust(command.servo2);
 
     lastServo1Value = val1;
     lastServo2Value = val2;
@@ -253,8 +277,5 @@ toy.on('command', function(command) {
             }
         };
     }
-});
 
-toy.on('error', function(err) {
-    console.error(err);
-});
+}
