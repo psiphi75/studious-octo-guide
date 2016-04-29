@@ -18,6 +18,7 @@
     "i2c-bus": "^1.0.2",
     "octalbonescript": "^1.1.2",
     "super-duper-serial-gps-system": "^0.5.2",
-    "web-remote-control": "^1.7.4"
+    "web-remote-control": "^1.7.4",
+    "winston": "^2.2.0"
   }
 }

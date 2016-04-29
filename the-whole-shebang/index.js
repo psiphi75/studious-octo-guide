@@ -34,6 +34,7 @@
  *******************************************************************************/
 
 var config = require('config');
+var logger = require('./logger');
 
 var WRC_URL = config.get('web-remote-control.url');
 var WRC_CHANNEL = config.get('web-remote-control.channel');
@@ -64,10 +65,10 @@ if (DEFAULT_LATITUDE && DEFAULT_LONGITUDE) {
 var header = config.util.cloneDeep(config);
 header.timestamp = new Date().getTime();
 header.fields = ['time', 'servo.1', 'servo.2', 'gyro.x', 'gyro.y', 'gyro.z', 'accel.x', 'accel.y', 'accel.z', 'compass.heading', 'compass.x', 'compass.y', 'compass.z', 'gps.lat', 'gps.lon'];
-console.log('Starting the-whole-shebang:');
-console.log('--- CONFIG START ---');
-console.log(JSON.stringify(header));
-console.log('--- CONFIG END ---');
+logger.info('Starting the-whole-shebang:');
+logger.info('--- CONFIG START ---');
+logger.info(JSON.stringify(header));
+logger.info('--- CONFIG END ---');
 
 
 /*******************************************************************************
@@ -77,41 +78,61 @@ console.log('--- CONFIG END ---');
  *******************************************************************************/
 
 /* Set this for octalbonescript such that it does load capes automatically */
-if (typeof process.env.AUTO_LOAD_CAPE === 'undefined') {
-    process.env.AUTO_LOAD_CAPE = 0;
-}
+process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
-var i2c = require('i2c-bus');
 var async = require('async');
 var util = require('./util');
 
-obs.i2c.open('/dev/i2c-1', 0x1e, function() {
-    }, function(error) {
-        if (error) {
-            console.error(error);
-        }
+obs.i2c.open('/dev/i2c-1', 0x1e, function() {}, function(error) {
+    if (error) {
+        logger.error(error);
     }
-);
-
-var Gyroscope = require('gyroscope-itg3200');
-var gyro = new Gyroscope(2, {
-    i2c: i2c,
-    sampleRate: SENSOR_SAMPLE_RATE
+    logger.debug('i2c channel openned');
 });
 
-var Compass = require('compass-hmc5883l');
-var compass = new Compass(1, {
-    i2c: i2c,
+var sensors = {
+    gyro: null,
+    compass: null,
+    accelerometer: null,
+    gps: null
+};
+
+function initSensor(name, moduleName, param1, param2, callback) {
+    var SensorModule = require(moduleName);
+    var sens;
+
+    try {
+        if (typeof param2 === 'undefined') {
+            sens = new SensorModule(param1);
+        } else {
+            sens = new SensorModule(param1, param2);
+        }
+        sensors[name] = sens;
+
+        if (callback) callback();
+    } catch (ex) {
+        logger.error('Unable to init: ', name);
+        setTimeout(function () {
+            initSensor(name, moduleName, param1, param2);
+        }, 1000);
+    }
+}
+
+
+initSensor('accelerometer', 'accelerometer-mma7660fc', 1);
+initSensor('gyro', 'gyroscope-itg3200', 2, { sampleRate: SENSOR_SAMPLE_RATE }, function() {
+    // Need to calibrate the gyro first, then we can collect data.
+    sensors.gyro.calibrate(function () {
+        // Only then we can begin collecting data
+        collectData();
+    });
+});
+initSensor('compass', 'compass-hmc5883l', 2, {
     sampleRate: '30',
     scale: '0.88',
     declination: declination
 });
-
-var MMA7660fc = require('accelerometer-mma7660fc');
-var accelerometer = new MMA7660fc(2, { i2c: i2c });
-
-var Serialgps = require('super-duper-serial-gps-system');
-var gps = new Serialgps('/dev/ttyO1', 9600);
+initSensor('gps', 'super-duper-serial-gps-system', '/dev/ttyO1', 9600);
 
 
 /*******************************************************************************
@@ -125,35 +146,38 @@ var lastServo1Value;
 var lastServo2Value;
 
 
-// Need to calibrate the gyro first, then we can collect data.
-gyro.calibrate(function () {
-    collectData();
-});
-
-
 /**
  * This will asyncronously retreive the sensor data (gyro, accel and compass).
  * GPS data is not included since it is retreived only every second.
  */
 function collectData() {
 
+    // Make sure sensors have been initalised
+    for (var sensor in sensors) {
+        if (!sensors[sensor]) {
+            logger.debug(sensor + ': not yet avialable');
+            setTimeout(collectData, 1000);
+            return;
+        }
+    }
+
     var startTime = new Date().getTime();
 
     async.parallel({
-        gyro: gyro.getValues.bind(gyro),
-        accel: accelerometer.getValues.bind(accelerometer),
-        compassRaw: compass.getRawValues.bind(compass)
+        gyro: sensors.gyro.getValues.bind(sensors.gyro),
+        accel: sensors.accelerometer.getValues.bind(sensors.accelerometer),
+        compassRaw: sensors.compass.getRawValues.bind(sensors.compass)
     }, function asyncResult(err, values) {
 
         var status;
         if (err) {
-            console.error('asyncResult():', err);
+            logger.error('asyncResult():', err);
             status = {
                 error: err
             };
         } else {
 
-            values.compass = compass.calcHeadingDegrees('x', 'z', values.compassRaw);
+            values.compass = sensors.compass.calcHeadingDegrees('x', 'z', values.compassRaw);
             status = {
                 gyro: util.roundVector(values.gyro, 1),
                 accel: util.roundVector(values.accel, 1),
@@ -162,6 +186,7 @@ function collectData() {
                 gps: lastGPS
             };
         }
+        logger.debug('status: ', JSON.stringify(status));
 
         var now = new Date().getTime();
         var elapsedTime = now - startTime;
@@ -186,16 +211,17 @@ function collectData() {
             outputStr += '\t' + util.vToStr(util.roundVector(values.accel, 6));
             outputStr += '\t' + util.round(values.compass, 5);
             outputStr += '\t' + util.vToStr(util.roundVector(values.compassRaw, 6));
-            outputStr += '\t' + util.gpsToStr(values.gps);
-            console.log(outputStr);
+            outputStr += '\t' + util.gpsToStr(lastGPS);
+            logger.info(outputStr);
         }
     });
 }
 
 // monitor for GPS data
 var lastGPS = null;
-gps.on('position', function(data) {
+sensors.gps.on('position', function(data) {
     lastGPS = data;
+    logger.debug('GPS data:', data);
 });
 
 
@@ -218,18 +244,18 @@ var toy = wrc.createToy({ proxyUrl: WRC_URL,
                           channel: WRC_CHANNEL,
                           udp4: true,
                           tcp: false,
-//                          log: function() {}
+                          log: logger.debug
 });
 
 // Should wait until we are registered before doing anything else
 toy.on('register', function() {
-    console.log('Registered with proxy server:', WRC_URL);
+    logger.info('Registered with proxy server:', WRC_URL);
 });
 
 // Ping the proxy and get the response time (in milliseconds)
 toy.ping(function (time) {
     if (time > 0) {
-        console.log('Ping time to proxy (ms):', time);
+        logger.info('Ping time to proxy (ms):', time);
     }
 });
 
@@ -238,18 +264,18 @@ toy.on('command', function(command) {
 
     switch (command.action) {
         case 'note':
-            console.log('NOTE: ', JSON.stringify(command.note));
+            logger.info('NOTE: ', JSON.stringify(command.note));
             break;
         case 'move':
             actionMove(command);
             break;
         default:
-            console.error('ERROR - invalid command', JSON.stringify(command));
+            logger.error('ERROR - invalid command', JSON.stringify(command));
     }
 
 });
 
-toy.on('error', console.error);
+toy.on('error', logger.error);
 
 
 function actionMove(command) {
@@ -272,7 +298,7 @@ function actionMove(command) {
     function getServoSetCB(servoNum/*, val*/) {
         return function servoSetCB(err) {
             if (err) {
-                console.error('servoSetCB: error for servo ' + servoNum + ': ', servoNum);
+                logger.error('servoSetCB: error for servo ' + servoNum + ': ', servoNum);
                 return;
             }
         };

@@ -23,47 +23,32 @@
 
 'use strict';
 
-/**
- * This script will be loaded at boot time.  Octalbonescript will load capes that
- * are required and enable the serial ports that we need.
- *
- * For BBG booting see: http://mybeagleboneblackfindings.blogspot.com/2013/10/running-script-on-beaglebone-black-boot.html
- *
- */
-
-/* Set this for octalbonescript such that it does load capes automatically */
-process.env.AUTO_LOAD_CAPE = 0;
-var obs = require('octalbonescript');
-console.log('\n\nLoaded octalbonescript');
-
-// Load the universal cape
-obs.loadCape('cape-universaln');
-console.log('Loaded the universal cape');
-
-// Enable serial for the GPS device
-enableSerial('/dev/ttyO1');
-
-// Enable serial for the GPRS Modem
-enableSerial('/dev/ttyO2');
-
-// This is required to initialise i2c-1 - currently used for the compass.
-obs.i2c.open('/dev/i2c-1', 0x1e, function() {
-    }, function(error) {
-        if (error) {
-            console.error(error.message);
-        } else {
-            console.log('Loaded i2c-1.');
+var winston = require('winston');
+var logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.Console)({
+      timestamp: function() {
+        return Date.now();
+      },
+      formatter: function(options) {
+        // Return string will be passed to logger.
+        var result = '';
+        result += options.timestamp() + ' ';
+        result += options.level.toUpperCase() + ' ';
+        if (undefined !== options.message) {
+            result += options.message;
         }
-    }
-);
-
-
-function enableSerial(port) {
-    obs.serial.enable(port, function(err) {
-        if (err) {
-            console.error(err);
-            return;
+        if (options.meta && Object.keys(options.meta).length) {
+            result += '\t' + JSON.stringify(options.meta);
         }
-        console.log('enabled serial: ' + port);
-    });
+        return result;
+      }
+    })
+  ]
+});
+
+if (process.env.DEBUG) {
+    logger.level = 'debug';
 }
+
+module.exports = logger;

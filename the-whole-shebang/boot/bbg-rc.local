@@ -31,7 +31,6 @@
 #   3) Start our connection to the proxy server
 #
 
-
 NODE=/usr/bin/node
 LOG_DIR=/root/logs
 SCRIPT_DIR=/root/studious-octo-guide/the-whole-shebang
@@ -39,6 +38,14 @@ SCRIPT_DIR=/root/studious-octo-guide/the-whole-shebang
 BOOT=${LOG_DIR}/the-whole-shebang-boot.log
 LOG=${LOG_DIR}/the-whole-shebang.log
 ERROR=${LOG_DIR}/the-whole-shebang.error.log
+
+# Backup the existing logs
+DATETIME=`date +%Y-%m-%d-%H:%M:%S`
+mv ${LOG} ${LOG}-${DATETIME}
+mv ${ERROR} ${ERROR}-${DATETIME}
+
+# The next line enhances the logging.  Uncomment for debug level logs
+export DEBUG=1
 
 exec > ${BOOT}
 exec 2>&1
