@@ -24,52 +24,55 @@
 'use strict';
 
 /**
- * This script will be loaded at boot time.  Octalbonescript will load capes that
- * are required and enable the serial ports that we need.
- *
- * For BBG booting see: http://mybeagleboneblackfindings.blogspot.com/2013/10/running-script-on-beaglebone-black-boot.html
- *
+ * This script will configure the GPS device.  It will:
+ *  - detect the baudrate
+ *  - set the baudrate to 115200 (default is 9600)
+ *  - set the NMEA output to only GGA and RMC sentences
+ *  - set the NMEA rate to 10 Hz (default is 1 Hz)
  */
 
+console.log('Running initGPS.js');
+
+var PMTK = require('pmtk');
 var config = require('config');
 
 var GPS_SERIAL = config.get('sensors.gps.serialport');
-var MODEM_SERIAL = config.get('modem.serialport');
+var GPS_BAUDRATE = config.get('sensors.gps.baudrate');
 
+var pmtk = new PMTK(GPS_SERIAL, 'detect', stdCallbackFactory('Initialise and autodetect speed', setBaudrate));
 
-/* Set this for octalbonescript such that it does load capes automatically */
-process.env.AUTO_LOAD_CAPE = 0;
-var obs = require('octalbonescript');
-console.log('\n\nLoaded octalbonescript');
-
-// Load the universal cape
-obs.loadCape('cape-universaln');
-console.log('Loaded the universal cape');
-
-// Enable serial for the GPS device
-enableSerial(GPS_SERIAL);
-
-// Enable serial for the GPRS Modem
-enableSerial(MODEM_SERIAL);
-
-// This is required to initialise i2c-1 - currently used for the compass.
-obs.i2c.open('/dev/i2c-1', 0x1e, function() {
-    }, function(error) {
-        if (error) {
-            console.error(error.message);
-        } else {
-            console.log('Loaded i2c-1.');
+function setBaudrate() {
+    console.log('\nSetting baudrate (' + GPS_BAUDRATE + '):');
+    pmtk.commands.setBaudrate(GPS_BAUDRATE, function (err) {
+        if (err === 'timeout') {
+            console.log('Change baudrate successful: ', GPS_BAUDRATE);
+            newPMTK();
+        } else if (err) {
+            console.log('ERROR setting baudrate: ', err);
         }
-    }
-);
-
-
-function enableSerial(port) {
-    obs.serial.enable(port, function(err) {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        console.log('enabled serial: ' + port);
     });
+}
+
+function newPMTK() {
+    pmtk = new PMTK(GPS_SERIAL, GPS_BAUDRATE, stdCallbackFactory('Initialise fresh PMTK @' + GPS_BAUDRATE + ' baud', setNmeaOutput));
+}
+
+function setNmeaOutput() {
+    pmtk.commands.setNmeaOutput(['GGA', 'RMC'], stdCallbackFactory('Change NMEA output', setTo10Hz));
+}
+
+function setTo10Hz() {
+    pmtk.commands.setNmeaOutputRate(100, stdCallbackFactory('Change to 10 Hz', function() {}));
+}
+
+function stdCallbackFactory(name, nextFn) {
+    console.log('\nStarting ' + name + ':');
+    return function (err, result) {
+        if (err) {
+            console.log('ERROR: ', name + ': ', err);
+        } else {
+            console.log(name + ' successful: ', result);
+        }
+        nextFn();
+    };
 }

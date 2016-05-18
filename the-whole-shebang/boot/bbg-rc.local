@@ -34,8 +34,9 @@
 NODE=/usr/bin/node
 LOG_DIR=/root/logs
 SCRIPT_DIR=/root/studious-octo-guide/the-whole-shebang
+export NODE_CONFIG_DIR=${SCRIPT_DIR}/config
 
-BOOT=${LOG_DIR}/the-whole-shebang-boot.log
+BOOT_LOG=${LOG_DIR}/the-whole-shebang-boot.log
 LOG=${LOG_DIR}/the-whole-shebang.log
 ERROR=${LOG_DIR}/the-whole-shebang.error.log
 
@@ -47,7 +48,7 @@ mv ${ERROR} ${ERROR}-${DATETIME}
 # The next line enhances the logging.  Uncomment for debug level logs
 export DEBUG=1
 
-exec > ${BOOT}
+exec > ${BOOT_LOG}
 exec 2>&1
 
 export AUTO_LOAD_CAPE=0
@@ -56,14 +57,15 @@ export NODE_ENV=production
 
 echo "### 1) Load the necessary components"
 ${NODE} ${SCRIPT_DIR}/boot/boot.js
-
-
+${NODE} ${SCRIPT_DIR}/boot/initGPS.js
 sleep 2
+
+
 echo "### 2) Enable the network (PPP)"
 pon
-
-
 sleep 10
+
+
 echo "### 3) Start the device afer waiting for a bit"
 cd ${SCRIPT_DIR}
 /usr/bin/forever start  \
@@ -73,9 +75,9 @@ cd ${SCRIPT_DIR}
     -e $ERROR           \
     --uid "tws"         \
      index.js
-
-
 sleep 5
+
+
 echo "### 4) Pinging google"
 ping -c 4 google.com
 

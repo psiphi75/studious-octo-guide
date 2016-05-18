@@ -40,10 +40,12 @@ var WRC_URL = config.get('web-remote-control.url');
 var WRC_CHANNEL = config.get('web-remote-control.channel');
 var WRC_STATUS_UPDATE_RATE = config.get('web-remote-control.update-rate');
 
-var SENSOR_SAMPLE_RATE = config.get('sample-rate');
-
 var SERVO_PIN_1 = config.get('servos.1');
 var SERVO_PIN_2 = config.get('servos.2');
+
+var SENSOR_SAMPLE_RATE = config.get('sensors.sample-rate');
+var GPS_SERIAL = config.get('sensors.gps.serialport');
+var GPS_BAUDRATE = config.get('sensors.gps.baudrate');
 
 
 // Required for the compass to determine true north (from the magnetic
@@ -64,10 +66,14 @@ if (DEFAULT_LATITUDE && DEFAULT_LONGITUDE) {
  */
 var header = config.util.cloneDeep(config);
 header.timestamp = new Date().getTime();
-header.fields = ['time', 'servo.1', 'servo.2', 'gyro.x', 'gyro.y', 'gyro.z', 'accel.x', 'accel.y', 'accel.z', 'compass.heading', 'compass.x', 'compass.y', 'compass.z', 'gps.lat', 'gps.lon'];
+header.fields = ['time', 'servo.1', 'servo.2',
+                 'gyro.x', 'gyro.y', 'gyro.z',
+                 'accel.x', 'accel.y', 'accel.z',
+                 'compass.heading', 'compass.x', 'compass.y', 'compass.z',
+                 'gps.position.latitude', 'gps.position.longitude', 'gps.position.altitude', 'gps.position.time', 'gps.position.quality', 'gps.position.hdop', ];
 logger.info('Starting the-whole-shebang:');
 logger.info('--- CONFIG START ---');
-logger.info(JSON.stringify(header));
+logger.info('HEADER:' + JSON.stringify(header));
 logger.info('--- CONFIG END ---');
 
 
@@ -111,7 +117,7 @@ function initSensor(name, moduleName, param1, param2, callback) {
 
         if (callback) callback();
     } catch (ex) {
-        logger.error('Unable to init: ', name);
+        logger.error('Unable to init: ', name, ex);
         setTimeout(function () {
             initSensor(name, moduleName, param1, param2);
         }, 1000);
@@ -132,7 +138,7 @@ initSensor('compass', 'compass-hmc5883l', 2, {
     scale: '0.88',
     declination: declination
 });
-initSensor('gps', 'super-duper-serial-gps-system', '/dev/ttyO1', 9600);
+initSensor('gps', './gps', GPS_SERIAL, GPS_BAUDRATE);
 
 
 /*******************************************************************************
@@ -141,7 +147,7 @@ initSensor('gps', 'super-duper-serial-gps-system', '/dev/ttyO1', 9600);
  *                                                                             *
  *******************************************************************************/
 
-var lastStatusUpdateTime = 0;
+var lastStatusSendTime = 0;
 var lastServo1Value;
 var lastServo2Value;
 
@@ -150,6 +156,7 @@ var lastServo2Value;
  * This will asyncronously retreive the sensor data (gyro, accel and compass).
  * GPS data is not included since it is retreived only every second.
  */
+var lastGPSPosition;
 function collectData() {
 
     // Make sure sensors have been initalised
@@ -162,67 +169,75 @@ function collectData() {
     }
 
     var startTime = new Date().getTime();
+    var now;
 
     async.parallel({
         gyro: sensors.gyro.getValues.bind(sensors.gyro),
         accel: sensors.accelerometer.getValues.bind(sensors.accelerometer),
         compassRaw: sensors.compass.getRawValues.bind(sensors.compass)
-    }, function asyncResult(err, values) {
-
-        var status;
+    }, function asyncResult(err, sensorData) {
+        now = new Date().getTime();
         if (err) {
             logger.error('asyncResult():', err);
-            status = {
-                error: err
-            };
+            sendError();
+            setTimeout(collectData, SENSOR_SAMPLE_RATE);
         } else {
+            enrichSensorData(sensorData);
+            sendSensorData(sensorData);
+            logger.info('STATUS:' + JSON.stringify(sensorData));
+            setTimeout(collectData, SENSOR_SAMPLE_RATE - sensorData.elapsedTime);
+        }
 
-            values.compass = sensors.compass.calcHeadingDegrees('x', 'z', values.compassRaw);
-            status = {
-                gyro: util.roundVector(values.gyro, 1),
-                accel: util.roundVector(values.accel, 1),
-                compass: util.round(values.compass, 1),
-                compassRaw: util.roundVector(values.compassRaw, 0),
-                gps: lastGPS
+    });
+
+    function enrichSensorData(sensorData) {
+        sensorData.timestamp = now;
+        sensorData.elapsedTime = now - startTime;
+        sensorData.gps = {
+            speed: sensors.gps.getSpeedData(),
+            position: sensors.gps.getPositionData()
+        };
+        if (sensorData.gps.position) {
+            lastGPSPosition = {
+                latitude: util.round(sensorData.gps.position.latitude, 6),
+                longitude: util.round(sensorData.gps.position.longitude, 6)
             };
         }
-        logger.debug('status: ', JSON.stringify(status));
+        sensorData.compass = sensors.compass.calcHeadingDegrees('x', 'z', sensorData.compassRaw);
+        sensorData.servo = {
+            1: lastServo1Value,
+            2: lastServo2Value
+        };
+    }
 
-        var now = new Date().getTime();
-        var elapsedTime = now - startTime;
-        setTimeout(collectData, SENSOR_SAMPLE_RATE - elapsedTime);
+    // Emit data at the statusToSend update rate
+    function sendSensorData(sensorData) {
+        if (!okayToSendData()) return;
+        var dataToSend = {
+            gyro: util.roundVector(sensorData.gyro, 1),
+            accel: util.roundVector(sensorData.accel, 1),
+            compassRaw: util.roundVector(sensorData.compassRaw, 0),
+            gps: lastGPSPosition,
+            time: now
+        };
+        toy.status(dataToSend);
+        logger.debug(dataToSend);
+    }
 
-        // Emit data at the status update rate
-        if (now - lastStatusUpdateTime > WRC_STATUS_UPDATE_RATE) {
+    function sendError(err) {
+        if (!okayToSendData()) return;
+        toy.status({ error: err });
+    }
 
-            lastStatusUpdateTime = now;
-            toy.status(status);
-
+    function okayToSendData() {
+        var elapsedTime = now - lastStatusSendTime;
+        if (elapsedTime < WRC_STATUS_UPDATE_RATE) {
+            return false;
         }
-
-        if (!status.error) {
-            /*
-             * Note: Order matters here.  See header.fields.
-             */
-            var outputStr = now + '';
-            outputStr += '\t' + util.round(lastServo1Value, 5);
-            outputStr += '\t' + util.round(lastServo2Value, 5);
-            outputStr += '\t' + util.vToStr(util.roundVector(values.gyro, 6));
-            outputStr += '\t' + util.vToStr(util.roundVector(values.accel, 6));
-            outputStr += '\t' + util.round(values.compass, 5);
-            outputStr += '\t' + util.vToStr(util.roundVector(values.compassRaw, 6));
-            outputStr += '\t' + util.gpsToStr(lastGPS);
-            logger.info(outputStr);
-        }
-    });
+        lastStatusSendTime = now;
+        return true;
+    }
 }
-
-// monitor for GPS data
-var lastGPS = null;
-sensors.gps.on('position', function(data) {
-    lastGPS = data;
-    logger.debug('GPS data:', data);
-});
 
 
 /*******************************************************************************
@@ -244,18 +259,17 @@ var toy = wrc.createToy({ proxyUrl: WRC_URL,
                           channel: WRC_CHANNEL,
                           udp4: true,
                           tcp: false,
-                          log: logger.debug
-});
+                          log: logger.debug });
 
 // Should wait until we are registered before doing anything else
 toy.on('register', function() {
-    logger.info('Registered with proxy server:', WRC_URL);
+    logger.info('COMMS:Registered with proxy server:', WRC_URL);
 });
 
 // Ping the proxy and get the response time (in milliseconds)
 toy.ping(function (time) {
     if (time > 0) {
-        logger.info('Ping time to proxy (ms):', time);
+        logger.info('COMMS:Ping time to proxy (ms):', time);
     }
 });
 
@@ -264,7 +278,7 @@ toy.on('command', function(command) {
 
     switch (command.action) {
         case 'note':
-            logger.info('NOTE: ', JSON.stringify(command.note));
+            logger.info('NOTE:' + JSON.stringify(command.note));
             break;
         case 'move':
             actionMove(command);

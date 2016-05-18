@@ -23,53 +23,59 @@
 
 'use strict';
 
-/**
- * This script will be loaded at boot time.  Octalbonescript will load capes that
- * are required and enable the serial ports that we need.
- *
- * For BBG booting see: http://mybeagleboneblackfindings.blogspot.com/2013/10/running-script-on-beaglebone-black-boot.html
- *
- */
+function GPS(serialPort, baudRate) {
 
-var config = require('config');
+    var me = this;
+    var gpsModule = require('gps');
+    var gps = new gpsModule();
 
-var GPS_SERIAL = config.get('sensors.gps.serialport');
-var MODEM_SERIAL = config.get('modem.serialport');
-
-
-/* Set this for octalbonescript such that it does load capes automatically */
-process.env.AUTO_LOAD_CAPE = 0;
-var obs = require('octalbonescript');
-console.log('\n\nLoaded octalbonescript');
-
-// Load the universal cape
-obs.loadCape('cape-universaln');
-console.log('Loaded the universal cape');
-
-// Enable serial for the GPS device
-enableSerial(GPS_SERIAL);
-
-// Enable serial for the GPRS Modem
-enableSerial(MODEM_SERIAL);
-
-// This is required to initialise i2c-1 - currently used for the compass.
-obs.i2c.open('/dev/i2c-1', 0x1e, function() {
-    }, function(error) {
-        if (error) {
-            console.error(error.message);
-        } else {
-            console.log('Loaded i2c-1.');
-        }
-    }
-);
-
-
-function enableSerial(port) {
-    obs.serial.enable(port, function(err) {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        console.log('enabled serial: ' + port);
+    var SerialPort = require('serialport');
+    var port = new SerialPort.SerialPort(serialPort, {
+        baudrate: baudRate,
+        parser: SerialPort.parsers.readline('\r\n')
     });
+
+    this.speedData = null;
+    this.positionData = null;
+
+    gps.on('data', function(data) {
+        if (data.lat === null || (data.lat === 0 && data.lon === 0)) return;
+        if (!data.valid) return;
+        if (data.type === 'RMC') {
+            me.speedData = {
+                time: data.time.getTime(), // convert to parsable time
+                speed: data.speed,
+                direction: data.track
+            };
+        }
+        if (data.type === 'GGA') {
+            me.positionData = {
+                time: data.time.getTime(), // convert to parsable time
+                latitude: data.lat,
+                longitude: data.lon,
+                altitude: data.alt,
+                quality: data.quality,
+                hdop: data.hdop
+            };
+        }
+    });
+
+    port.on('data', function(data) {
+        gps.update(data);
+    });
+
 }
+
+GPS.prototype.getSpeedData = function getSpeedData() {
+    var retVal = this.speedData;
+    this.speedData = null;
+    return retVal;
+};
+
+GPS.prototype.getPositionData = function getPositionData() {
+    var retVal = this.positionData;
+    this.positionData = null;
+    return retVal;
+};
+
+module.exports = GPS;
