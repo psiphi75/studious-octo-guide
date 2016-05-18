@@ -20,6 +20,7 @@
     "super-duper-serial-gps-system": "^0.5.2",
     "web-remote-control": "^1.7.4",
     "winston": "^2.2.0",
-    "pmtk": "^0.1.1"
+    "pmtk": "^0.1.1",
+    "node-static": "0.7.7"
   }
 }
