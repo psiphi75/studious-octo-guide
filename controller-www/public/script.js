@@ -65,7 +65,9 @@ function startController(channel) {
     var lastUpdateTime = 0;
     controller.connection.socket.on('connect', function() {
 
-        displayConnectionStatus('connecting');
+        if (connectionStatus === 'notconnected') {
+            displayConnectionStatus('connecting');
+        }
 
         controller.on('register', function() {
 
