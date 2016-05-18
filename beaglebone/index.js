@@ -126,6 +126,12 @@ function initSensor(name, moduleName, param1, param2, callback) {
 
 
 initSensor('accelerometer', 'accelerometer-mma7660fc', 1);
+initSensor('compass', 'compass-hmc5883l', 2, {
+    sampleRate: '30',
+    scale: '0.88',
+    declination: declination
+});
+initSensor('gps', './gps', GPS_SERIAL, GPS_BAUDRATE);
 initSensor('gyro', 'gyroscope-itg3200', 2, { sampleRate: SENSOR_SAMPLE_RATE }, function() {
     // Need to calibrate the gyro first, then we can collect data.
     sensors.gyro.calibrate(function () {
@@ -133,12 +139,6 @@ initSensor('gyro', 'gyroscope-itg3200', 2, { sampleRate: SENSOR_SAMPLE_RATE }, f
         collectData();
     });
 });
-initSensor('compass', 'compass-hmc5883l', 2, {
-    sampleRate: '30',
-    scale: '0.88',
-    declination: declination
-});
-initSensor('gps', './gps', GPS_SERIAL, GPS_BAUDRATE);
 
 
 /*******************************************************************************
