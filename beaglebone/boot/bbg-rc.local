@@ -33,12 +33,12 @@
 
 NODE=/usr/bin/node
 LOG_DIR=/root/logs
-SCRIPT_DIR=/root/studious-octo-guide/the-whole-shebang
+SCRIPT_DIR=/root/studious-octo-guide/beaglebone
 export NODE_CONFIG_DIR=${SCRIPT_DIR}/config
 
-BOOT_LOG=${LOG_DIR}/the-whole-shebang-boot.log
-LOG=${LOG_DIR}/the-whole-shebang.log
-ERROR=${LOG_DIR}/the-whole-shebang.error.log
+BOOT_LOG=${LOG_DIR}/beaglebone-boot.log
+LOG=${LOG_DIR}/beaglebone.log
+ERROR=${LOG_DIR}/beaglebone-error.log
 
 # Backup the existing logs
 DATETIME=`date +%Y-%m-%d-%H:%M:%S`
