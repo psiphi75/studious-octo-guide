@@ -62,6 +62,7 @@ function startController(channel) {
         });
     };
 
+    var lastUpdateTime = 0;
     controller.connection.socket.on('connect', function() {
 
         displayConnectionStatus('connecting');
@@ -72,15 +73,22 @@ function startController(channel) {
 
             setInterval(function() {
                 controller.ping(function(t) {
-                    logReplaceMessage('Ping (ms): ', t);
+                    logReplaceMessage('Proxy: Ping (ms): ', t);
                 });
             }, 1000);
 
             controller.on('status', function(status) {
 
+                lastUpdateTime = new Date().getTime();
+
                 if (firstStatusMessage) {
                     writeToLogger('Toy is connected.');
                     firstStatusMessage = false;
+
+                    setInterval(function() {
+                        var t = Math.round((new Date().getTime() - lastUpdateTime) / 1000);
+                        logReplaceMessage('Toy: time since last msg (s): ', t);
+                    }, 300);
                 }
 
                 if (typeof status === 'object') {
@@ -89,7 +97,7 @@ function startController(channel) {
                     displaySensorStatus(status, 'accel');
                     displaySensorStatus(status, 'gps');
                 }
-                logReplaceMessage('Time diff (ms): ', (new Date().getTime() - status.time));
+                logReplaceMessage('Toy: Time diff (ms): ', (new Date().getTime() - status.time));
 
             });
             controller.on('error', function(err) {
@@ -301,7 +309,7 @@ function clearLog() {       // eslint-disable-line no-unused-vars
 
 function logReplaceMessage(key, value) {
     value = value.toString();
-    var re = new RegExp('>' + key.replace('(', '\\(').replace(')', '\\)') + '[\\-0-9a-zA-Z]*<', 'g');
+    var re = new RegExp('>' + key.replace('(', '\\(').replace(')', '\\)') + '[\\.\\-0-9a-zA-Z]*<', 'g');
 
     var el = $('#log>.card-block');
     var matches = el.html().match(re);
@@ -372,7 +380,7 @@ function displayConnectionStatus(status) {
 
     connEl.parent().removeClass().addClass('alert ' + newClass);
     connEl.text(message);
-    logMessage(message);
+    // logMessage(message);
 }
 
 function setChannel(channel) {
@@ -424,6 +432,14 @@ function displaySensorStatus(status, type) {
         return;
     }
 
+    // GPS gets mapped to 'lat' / 'long'
+    if (type === 'gps' && status.gps.latitude) {
+        status.gps.lat = status.gps.latitude;
+        status.gps.long = status.gps.longitude;
+        delete status.gps.latitude;
+        delete status.gps.longitude;
+    }
+
     var el = $('#' + type);
     if (!el) {
         logMessage('Unable to update: ' + type);
@@ -434,6 +450,21 @@ function displaySensorStatus(status, type) {
     Object.keys(status[type]).forEach(function(key) {
         findAndUpdateLabel(status[type][key], key);
     });
+
+    // Make element clickable
+    if (type === 'gps') {
+        el.unbind('click');
+        el.click(function() {
+            var win = window.open('geo://' + status.gps.lat + ',' + status.gps.long, '_blank');
+            if (win){
+                //Browser has allowed it to be opened
+                win.focus();
+            } else {
+                //Broswer has blocked it
+                alert('Please allow popups for this site');
+            }
+        });
+    }
 
     function findAndUpdateLabel(value, dim) {
         for (var i = 0; i < subEls.length; i += 1) {
