@@ -36,7 +36,6 @@ var config = require('config');
 var GPS_SERIAL = config.get('sensors.gps.serialport');
 var MODEM_SERIAL = config.get('modem.serialport');
 
-
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
@@ -53,23 +52,27 @@ enableSerial(GPS_SERIAL);
 enableSerial(MODEM_SERIAL);
 
 // This is required to initialise i2c-1 - currently used for the compass.
-obs.i2c.open('/dev/i2c-1', 0x1e, function() {
-    }, function(error) {
-        if (error) {
-            console.error(error.message);
-        } else {
-            console.log('Loaded i2c-1.');
-        }
-    }
-);
+enableI2c('/dev/i2c-1', 0x1e);
 
+function enableI2c(i2cBus, i2cAddress) {
+    obs.i2c.open(i2cBus, i2cAddress, function() {}, getStandardCB('Enabled i2c: ' + i2cBus));
+}
 
 function enableSerial(port) {
-    obs.serial.enable(port, function(err) {
+    obs.serial.enable(port, getStandardCB('Enabled serial port: ' + port));
+}
+
+/**
+ * Return a standard callback.
+ * @param  {string} successMsg The message to print on successMsg
+ */
+function getStandardCB(successMsg) {
+    return function(err) {
         if (err) {
             console.error(err);
             return;
+        } else {
+            console.log(successMsg);
         }
-        console.log('enabled serial: ' + port);
-    });
+    };
 }

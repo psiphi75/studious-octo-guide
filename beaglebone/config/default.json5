@@ -20,7 +20,7 @@
      * Which pins the servos are linked to.
      */
     "servos": {
-        "1": "P9_16",
+        "1": "P8_13",
         "2": "P8_19"
     },
 
@@ -28,13 +28,25 @@
      * Modem details
      */
     "modem": {
-         "serialport": "/dev/ttyO2"
+         "serialport": "/dev/ttyO1"
     },
 
     "sensors": {
         "gps": {
-            "serialport": "/dev/ttyO1",
+            "serialport": "/dev/ttyO4",
             "baudrate": 115200
+        },
+
+        "accelerometer": {
+            "i2c-bus": 1
+        },
+
+        "compass": {
+            "i2c-bus": 2
+        },
+
+        "gyroscope": {
+            "i2c-bus": 2
         },
 
         /*

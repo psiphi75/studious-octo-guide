@@ -47,6 +47,9 @@ var SENSOR_SAMPLE_RATE = config.get('sensors.sample-rate');
 var GPS_SERIAL = config.get('sensors.gps.serialport');
 var GPS_BAUDRATE = config.get('sensors.gps.baudrate');
 
+var ACCEL_I2C_BUS = config.get('sensors.accelerometer.i2c-bus');
+var COMPASS_I2C_BUS = config.get('sensors.compass.i2c-bus');
+var GYRO_I2C_BUS = config.get('sensors.gyroscope.i2c-bus');
 
 // Required for the compass to determine true north (from the magnetic
 // declination).  The latitude / longitude values can be approximate.
@@ -89,12 +92,12 @@ var obs = require('octalbonescript');
 var async = require('async');
 var util = require('./util');
 
-obs.i2c.open('/dev/i2c-1', 0x1e, function() {}, function(error) {
-    if (error) {
-        logger.error(error);
-    }
-    logger.debug('i2c channel openned');
-});
+// obs.i2c.open('/dev/i2c-1', 0x1e, function() {}, function(error) {
+//     if (error) {
+//         logger.error(error);
+//     }
+//     logger.debug('i2c channel openned');
+// });
 
 var sensors = {
     gyro: null,
@@ -124,15 +127,14 @@ function initSensor(name, moduleName, param1, param2, callback) {
     }
 }
 
-
-initSensor('accelerometer', 'accelerometer-mma7660fc', 1);
-initSensor('compass', 'compass-hmc5883l', 2, {
+initSensor('accelerometer', 'accelerometer-mma7660fc', ACCEL_I2C_BUS);
+initSensor('compass', 'compass-hmc5883l', COMPASS_I2C_BUS, {
     sampleRate: '30',
     scale: '0.88',
     declination: declination
 });
 initSensor('gps', './gps', GPS_SERIAL, GPS_BAUDRATE);
-initSensor('gyro', 'gyroscope-itg3200', 2, { sampleRate: SENSOR_SAMPLE_RATE }, function() {
+initSensor('gyro', 'gyroscope-itg3200', GYRO_I2C_BUS, { sampleRate: SENSOR_SAMPLE_RATE }, function() {
     // Need to calibrate the gyro first, then we can collect data.
     sensors.gyro.calibrate(function () {
         // Only then we can begin collecting data

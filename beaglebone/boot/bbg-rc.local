@@ -58,6 +58,7 @@ export NODE_ENV=production
 echo "### 1) Load the necessary components"
 ${NODE} ${SCRIPT_DIR}/boot/boot.js
 ${NODE} ${SCRIPT_DIR}/boot/initGPS.js
+
 sleep 2
 
 
