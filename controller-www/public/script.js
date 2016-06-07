@@ -115,8 +115,8 @@ function startController(channel) {
 
                 controller.command({
                     action: 'move',
-                    servo1: x.getValue(),
-                    servo2: y.getValue()
+                    servoSail: x.getValue(),
+                    servoRudder: y.getValue()
                 });
             }
 

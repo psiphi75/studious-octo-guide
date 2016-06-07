@@ -31,10 +31,7 @@
  *
  */
 
-var config = require('config');
-
-var GPS_SERIAL = config.get('sensors.gps.serialport');
-var MODEM_SERIAL = config.get('modem.serialport');
+var cfg = require('config');
 
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
@@ -46,17 +43,10 @@ obs.loadCape('cape-universaln');
 console.log('Loaded the universal cape');
 
 // Enable serial for the GPS device
-enableSerial(GPS_SERIAL);
+enableSerial(cfg.gps.serialport);
 
 // Enable serial for the GPRS Modem
-enableSerial(MODEM_SERIAL);
-
-// This is required to initialise i2c-1 - currently used for the compass.
-enableI2c('/dev/i2c-1', 0x1e);
-
-function enableI2c(i2cBus, i2cAddress) {
-    obs.i2c.open(i2cBus, i2cAddress, function() {}, getStandardCB('Enabled i2c: ' + i2cBus));
-}
+enableSerial(cfg.modem.serialport);
 
 function enableSerial(port) {
     obs.serial.enable(port, getStandardCB('Enabled serial port: ' + port));

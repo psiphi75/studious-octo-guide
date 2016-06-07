@@ -9,18 +9,14 @@
   "author": "Simon M. Werner",
   "private": true,
   "dependencies": {
-    "accelerometer-mma7660fc": "^0.6.1",
-    "async": "^1.5.2",
-    "compass-hmc5883l": "^1.0.0",
     "config": "^1.20.1",
     "geomagnetism": "^0.0.2",
-    "gyroscope-itg3200 ": "^0.5.5",
-    "i2c-bus": "^1.0.2",
+    "gps": "^0.0.9",
+    "mpu9250": ">0.1.4",
+    "node-static": "^0.7.7",
     "octalbonescript": "^1.1.2",
-    "super-duper-serial-gps-system": "^0.5.2",
-    "web-remote-control": "^1.7.4",
-    "winston": "^2.2.0",
     "pmtk": "^0.1.1",
-    "node-static": "0.7.7"
+    "web-remote-control": "^1.7.4",
+    "winston": "^2.2.0"
   }
 }

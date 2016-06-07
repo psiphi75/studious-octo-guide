@@ -59,12 +59,14 @@ echo "### 1) Load the necessary components"
 ${NODE} ${SCRIPT_DIR}/boot/boot.js
 ${NODE} ${SCRIPT_DIR}/boot/initGPS.js
 
-sleep 2
+# sleep 2
 
 
-echo "### 2) Enable the network (PPP)"
-pon
-sleep 10
+# echo "### 2) Enable the network (PPP)"
+# pon
+# sleep 10
+echo "### 2) Start the proxy"
+${SCRIPT_DIR}/../startWRC.sh
 
 
 echo "### 3) Start the device afer waiting for a bit"

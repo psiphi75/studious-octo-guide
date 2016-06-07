@@ -34,18 +34,15 @@
 console.log('Running initGPS.js');
 
 var PMTK = require('pmtk');
-var config = require('config');
+var cfg = require('config');
 
-var GPS_SERIAL = config.get('sensors.gps.serialport');
-var GPS_BAUDRATE = config.get('sensors.gps.baudrate');
-
-var pmtk = new PMTK(GPS_SERIAL, 'detect', stdCallbackFactory('Initialise and autodetect speed', setBaudrate));
+var pmtk = new PMTK(cfg.gps.serialport, 'detect', stdCallbackFactory('Initialise and autodetect speed', setBaudrate));
 
 function setBaudrate() {
-    console.log('\nSetting baudrate (' + GPS_BAUDRATE + '):');
-    pmtk.commands.setBaudrate(GPS_BAUDRATE, function (err) {
+    console.log('\nSetting baudrate (' + cfg.gps.baudrate + '):');
+    pmtk.commands.setBaudrate(cfg.gps.baudrate, function (err) {
         if (err === 'timeout') {
-            console.log('Change baudrate successful: ', GPS_BAUDRATE);
+            console.log('Change baudrate successful: ', cfg.gps.baudrate);
             newPMTK();
         } else if (err) {
             console.log('ERROR setting baudrate: ', err);
@@ -54,7 +51,7 @@ function setBaudrate() {
 }
 
 function newPMTK() {
-    pmtk = new PMTK(GPS_SERIAL, GPS_BAUDRATE, stdCallbackFactory('Initialise fresh PMTK @' + GPS_BAUDRATE + ' baud', setNmeaOutput));
+    pmtk = new PMTK(cfg.gps.serialport, cfg.gps.baudrate, stdCallbackFactory('Initialise fresh PMTK @' + cfg.gps.baudrate + ' baud', setNmeaOutput));
 }
 
 function setNmeaOutput() {

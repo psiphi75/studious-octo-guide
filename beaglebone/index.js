@@ -33,33 +33,15 @@
  *                                                                             *
  *******************************************************************************/
 
-var config = require('config');
+var cfg = require('config');
 var logger = require('./logger');
-
-var WRC_URL = config.get('web-remote-control.url');
-var WRC_CHANNEL = config.get('web-remote-control.channel');
-var WRC_STATUS_UPDATE_RATE = config.get('web-remote-control.update-rate');
-
-var SERVO_PIN_1 = config.get('servos.1');
-var SERVO_PIN_2 = config.get('servos.2');
-
-var SENSOR_SAMPLE_RATE = config.get('sensors.sample-rate');
-var GPS_SERIAL = config.get('sensors.gps.serialport');
-var GPS_BAUDRATE = config.get('sensors.gps.baudrate');
-
-var ACCEL_I2C_BUS = config.get('sensors.accelerometer.i2c-bus');
-var COMPASS_I2C_BUS = config.get('sensors.compass.i2c-bus');
-var GYRO_I2C_BUS = config.get('sensors.gyroscope.i2c-bus');
 
 // Required for the compass to determine true north (from the magnetic
 // declination).  The latitude / longitude values can be approximate.
-var DEFAULT_LATITUDE = config.get('location.latitude');
-var DEFAULT_LONGITUDE = config.get('location.longitude');
 var declination = 0;
-
-if (DEFAULT_LATITUDE && DEFAULT_LONGITUDE) {
+if (cfg.location.latitude && cfg.location.longitude) {
     var geomagnetism = require('geomagnetism');
-    var geo = geomagnetism.model().point([DEFAULT_LONGITUDE, DEFAULT_LATITUDE]);
+    var geo = geomagnetism.model().point([cfg.location.longitude, cfg.location.latitude]);
     declination = geo.decl;
 }
 
@@ -67,7 +49,7 @@ if (DEFAULT_LATITUDE && DEFAULT_LONGITUDE) {
 /*
  * Output config settings - we will pick these up later.
  */
-var header = config.util.cloneDeep(config);
+var header = cfg.util.cloneDeep(cfg);
 header.timestamp = new Date().getTime();
 header.fields = ['time', 'servo.1', 'servo.2',
                  'gyro.x', 'gyro.y', 'gyro.z',
@@ -89,59 +71,18 @@ logger.info('--- CONFIG END ---');
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
-var async = require('async');
 var util = require('./util');
 
-// obs.i2c.open('/dev/i2c-1', 0x1e, function() {}, function(error) {
-//     if (error) {
-//         logger.error(error);
-//     }
-//     logger.debug('i2c channel openned');
-// });
+var GPS = require('./gps');
+var gps = new GPS(cfg.gps.serialport, cfg.gps.baudrate);
 
-var sensors = {
-    gyro: null,
-    compass: null,
-    accelerometer: null,
-    gps: null
+var Mpu9250 = require('mpu9250');
+Mpu9250.prototype.getMotion9Async = function(callback) {
+    callback(null, this.getMotion9());
 };
+var imu = new Mpu9250(cfg.mpu9250.options);
 
-function initSensor(name, moduleName, param1, param2, callback) {
-    var SensorModule = require(moduleName);
-    var sens;
-
-    try {
-        if (typeof param2 === 'undefined') {
-            sens = new SensorModule(param1);
-        } else {
-            sens = new SensorModule(param1, param2);
-        }
-        sensors[name] = sens;
-
-        if (callback) callback();
-    } catch (ex) {
-        logger.error('Unable to init: ', name, ex);
-        setTimeout(function () {
-            initSensor(name, moduleName, param1, param2);
-        }, 1000);
-    }
-}
-
-initSensor('accelerometer', 'accelerometer-mma7660fc', ACCEL_I2C_BUS);
-initSensor('compass', 'compass-hmc5883l', COMPASS_I2C_BUS, {
-    sampleRate: '30',
-    scale: '0.88',
-    declination: declination
-});
-initSensor('gps', './gps', GPS_SERIAL, GPS_BAUDRATE);
-initSensor('gyro', 'gyroscope-itg3200', GYRO_I2C_BUS, { sampleRate: SENSOR_SAMPLE_RATE }, function() {
-    // Need to calibrate the gyro first, then we can collect data.
-    sensors.gyro.calibrate(function () {
-        // Only then we can begin collecting data
-        collectData();
-    });
-});
-
+imu.initialize();
 
 /*******************************************************************************
  *                                                                             *
@@ -150,8 +91,8 @@ initSensor('gyro', 'gyroscope-itg3200', GYRO_I2C_BUS, { sampleRate: SENSOR_SAMPL
  *******************************************************************************/
 
 var lastStatusSendTime = 0;
-var lastServo1Value;
-var lastServo2Value;
+var lastSailValue;
+var lastRudderValue;
 
 
 /**
@@ -159,45 +100,52 @@ var lastServo2Value;
  * GPS data is not included since it is retreived only every second.
  */
 var lastGPSPosition;
-function collectData() {
+var sensorSampleRate = cfg.mpu9250.sampleRate;
+var sensorData = {};
 
-    // Make sure sensors have been initalised
-    for (var sensor in sensors) {
-        if (!sensors[sensor]) {
-            logger.debug(sensor + ': not yet avialable');
-            setTimeout(collectData, 1000);
-            return;
-        }
-    }
+function collectData() {
 
     var startTime = new Date().getTime();
     var now;
 
-    async.parallel({
-        gyro: sensors.gyro.getValues.bind(sensors.gyro),
-        accel: sensors.accelerometer.getValues.bind(sensors.accelerometer),
-        compassRaw: sensors.compass.getRawValues.bind(sensors.compass)
-    }, function asyncResult(err, sensorData) {
+    imu.getMotion9Async(function (err, sensorDataArray) {
         now = new Date().getTime();
         if (err) {
             logger.error('asyncResult():', err);
             sendError();
-            setTimeout(collectData, SENSOR_SAMPLE_RATE);
+            setTimeout(collectData, sensorSampleRate);
         } else {
-            enrichSensorData(sensorData);
-            sendSensorData(sensorData);
-            logger.info('STATUS:' + JSON.stringify(sensorData));
-            setTimeout(collectData, SENSOR_SAMPLE_RATE - sensorData.elapsedTime);
-        }
+            sensorData = {
+                accel: {
+                    x: sensorDataArray[0],
+                    y: sensorDataArray[1],
+                    z: sensorDataArray[2]
+                },
+                gyro: {
+                    x: sensorDataArray[3],
+                    y: sensorDataArray[4],
+                    z: sensorDataArray[5]
+                },
+                compassRaw: {
+                    x: sensorDataArray[6],
+                    y: sensorDataArray[7],
+                    z: sensorDataArray[8]
+                }
+            };
 
+            enrichSensorData();
+            sendSensorData();
+            logger.info('STATUS:' + JSON.stringify(sensorData));
+            setTimeout(collectData, sensorSampleRate - sensorData.elapsedTime);
+        }
     });
 
-    function enrichSensorData(sensorData) {
+    function enrichSensorData() {
         sensorData.timestamp = now;
         sensorData.elapsedTime = now - startTime;
         sensorData.gps = {
-            speed: sensors.gps.getSpeedData(),
-            position: sensors.gps.getPositionData()
+            speed: gps.getSpeedData(),
+            position: gps.getPositionData()
         };
         if (sensorData.gps.position) {
             lastGPSPosition = {
@@ -205,15 +153,15 @@ function collectData() {
                 longitude: util.round(sensorData.gps.position.longitude, 6)
             };
         }
-        sensorData.compass = sensors.compass.calcHeadingDegrees('x', 'z', sensorData.compassRaw);
+        sensorData.compass = -1; // FIXME:  Code was: sensors.compass.calcHeadingDegrees('x', 'z', sensorData.compassRaw);
         sensorData.servo = {
-            1: lastServo1Value,
-            2: lastServo2Value
+            sail: lastSailValue,
+            rudder: lastRudderValue
         };
     }
 
     // Emit data at the statusToSend update rate
-    function sendSensorData(sensorData) {
+    function sendSensorData() {
         if (!okayToSendData()) return;
         var dataToSend = {
             gyro: util.roundVector(sensorData.gyro, 1),
@@ -233,7 +181,7 @@ function collectData() {
 
     function okayToSendData() {
         var elapsedTime = now - lastStatusSendTime;
-        if (elapsedTime < WRC_STATUS_UPDATE_RATE) {
+        if (elapsedTime < cfg.webRemoteControl.updateRate) {
             return false;
         }
         lastStatusSendTime = now;
@@ -253,19 +201,21 @@ function collectData() {
 
 // Set up the two servos.
 var Servo = require('./Servo');
-var servo1 = new Servo(obs, SERVO_PIN_1, function () {});
-var servo2 = new Servo(obs, SERVO_PIN_2, function () {});
+var servoSail = new Servo(obs, cfg.servos.sail, function () {});
+var servoRudder = new Servo(obs, cfg.servos.rudder, function () {});
 
 var wrc = require('web-remote-control');
-var toy = wrc.createToy({ proxyUrl: WRC_URL,
-                          channel: WRC_CHANNEL,
+var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
+                          channel: cfg.webRemoteControl.channel,
                           udp4: true,
                           tcp: false,
-                          log: logger.debug });
+                          log: logger.debug };
+var toy = wrc.createToy(wrcOptions);
+logger.debug(wrcOptions);
 
 // Should wait until we are registered before doing anything else
 toy.on('register', function() {
-    logger.info('COMMS:Registered with proxy server:', WRC_URL);
+    logger.info('COMMS:Registered with proxy server:', cfg.webRemoteControl.url);
 });
 
 // Ping the proxy and get the response time (in milliseconds)
@@ -293,17 +243,15 @@ toy.on('command', function(command) {
 
 toy.on('error', logger.error);
 
-
+// This function gets called when we receive a 'command' from the controller.
+// It will move the servos respectively.
 function actionMove(command) {
 
-    var val1 = adjust(command.servo1);
-    var val2 = adjust(command.servo2);
+    lastSailValue = adjust(command.servoSail);
+    lastRudderValue = adjust(command.servoRudder);
 
-    lastServo1Value = val1;
-    lastServo2Value = val2;
-
-    servo1.set(val1, getServoSetCB(1, val1));
-    servo2.set(val2, getServoSetCB(2, val2));
+    servoSail.set(lastSailValue, getServoSetCB('sail'));
+    servoRudder.set(lastRudderValue, getServoSetCB('rudder'));
 
     function adjust(val) {
         val += 1.01;
@@ -311,13 +259,21 @@ function actionMove(command) {
         return val;
     }
 
-    function getServoSetCB(servoNum/*, val*/) {
+    function getServoSetCB(servo) {
         return function servoSetCB(err) {
             if (err) {
-                logger.error('servoSetCB: error for servo ' + servoNum + ': ', servoNum);
+                logger.error('servoSetCB: error for the ' + servo + ' servo: ', err);
                 return;
             }
         };
     }
-
 }
+
+
+/********************************************************************************************
+ *
+ *                                      Let the show begin!
+ *
+ ********************************************************************************************/
+
+collectData();
