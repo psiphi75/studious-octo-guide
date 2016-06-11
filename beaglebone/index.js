@@ -38,11 +38,11 @@ var logger = require('./logger');
 
 // Required for the compass to determine true north (from the magnetic
 // declination).  The latitude / longitude values can be approximate.
-var declination = 0;
+var declinationDeg = 0;
 if (cfg.location.latitude && cfg.location.longitude) {
     var geomagnetism = require('geomagnetism');
     var geo = geomagnetism.model().point([cfg.location.longitude, cfg.location.latitude]);
-    declination = geo.decl;
+    declinationDeg = geo.decl;
 }
 
 
@@ -78,7 +78,10 @@ var gps = new GPS(cfg.gps.serialport, cfg.gps.baudrate);
 
 var Mpu9250 = require('mpu9250');
 Mpu9250.prototype.getMotion9Async = function(callback) {
-    callback(null, this.getMotion9());
+    callback(null, imu.getMotion9());
+};
+Mpu9250.prototype.getMotion6Async = function(callback) {
+    callback(null, imu.getMotion6());
 };
 var imu = new Mpu9250(cfg.mpu9250.options);
 
@@ -102,13 +105,25 @@ var lastRudderValue;
 var lastGPSPosition;
 var sensorSampleRate = cfg.mpu9250.sampleRate;
 var sensorData = {};
+var MAG_SAMPLE_RATE = 1;
+var mag_skip_count = 0;
 
 function collectData() {
 
     var startTime = new Date().getTime();
     var now;
 
-    imu.getMotion9Async(function (err, sensorDataArray) {
+    // Don't capture the magnetometer every sample, only once every MAG_SAMPLE_RATE.
+    var getSampleFn;
+    if (mag_skip_count - 1 <= 0) {
+        mag_skip_count = MAG_SAMPLE_RATE;
+        getSampleFn = imu.getMotion9Async;
+    } else {
+        mag_skip_count -= 1;
+        getSampleFn = imu.getMotion6Async;
+    }
+
+    getSampleFn(function (err, sensorDataArray) {
         now = new Date().getTime();
         if (err) {
             logger.error('asyncResult():', err);
@@ -125,13 +140,23 @@ function collectData() {
                     x: sensorDataArray[3],
                     y: sensorDataArray[4],
                     z: sensorDataArray[5]
-                },
-                compassRaw: {
+                }
+            };
+
+            // Do transformations to get the sensors aligned with the the body.  Accel and gyro are on the same axis.
+            // Magnetometer is (strangely) using a different axis.
+            sensorData.accel = transformAccelGyro(sensorData.accel);
+            sensorData.gyro = transformAccelGyro(sensorData.gyro);
+
+            // Only read mag data if it's available
+            if (sensorDataArray.length > 6) {
+                sensorData.compassRaw = {
                     x: sensorDataArray[6],
                     y: sensorDataArray[7],
                     z: sensorDataArray[8]
-                }
-            };
+                };
+                sensorData.compassRaw = transformMag(sensorData.compassRaw);
+            }
 
             enrichSensorData();
             sendSensorData();
@@ -139,6 +164,34 @@ function collectData() {
             setTimeout(collectData, sensorSampleRate - sensorData.elapsedTime);
         }
     });
+
+    /**
+     * Transformation:
+     *  - Rotate around Z axis 180 degrees
+     *  - Rotate around X axis -90 degrees
+     * @param  {object} s {x,y,z} sensor
+     * @return {object}   {x,y,z} transformed
+     */
+    function transformAccelGyro(s) {
+        return {
+            x: -s.x,
+            y: s.z,
+            z: s.y
+        };
+    }
+
+    /**
+     * Transformation: to get magnetometer aligned
+     * @param  {object} s {x,y,z} sensor
+     * @return {object}   {x,y,z} transformed
+     */
+    function transformMag(s) {
+        return {
+            x: -s.y,
+            y: -s.z,
+            z: s.x
+        };
+    }
 
     function enrichSensorData() {
         sensorData.timestamp = now;
@@ -153,7 +206,9 @@ function collectData() {
                 longitude: util.round(sensorData.gps.position.longitude, 6)
             };
         }
-        sensorData.compass = -1; // FIXME:  Code was: sensors.compass.calcHeadingDegrees('x', 'z', sensorData.compassRaw);
+        if (sensorData.compassRaw) {
+            sensorData.compass = calcHeadingDeg(sensorData.compassRaw);
+        }
         sensorData.servo = {
             sail: lastSailValue,
             rudder: lastRudderValue
@@ -166,10 +221,12 @@ function collectData() {
         var dataToSend = {
             gyro: util.roundVector(sensorData.gyro, 1),
             accel: util.roundVector(sensorData.accel, 1),
-            compassRaw: util.roundVector(sensorData.compassRaw, 0),
             gps: lastGPSPosition,
             time: now
         };
+        if (sensorData.compassRaw) {
+            dataToSend.compassRaw = util.roundVector(sensorData.compassRaw, 0);
+        }
         toy.status(dataToSend);
         logger.debug(dataToSend);
     }
@@ -187,6 +244,25 @@ function collectData() {
         lastStatusSendTime = now;
         return true;
     }
+
+    /**
+     * Calculate True North heading.
+     * @param  {[type]} mag [description]
+     * @return {[type]}     [description]
+     */
+    function calcHeadingDeg(mag) {
+        var headingDeg = Math.atan2(mag.y, mag.x) * 180 / Math.PI;
+        headingDeg += declinationDeg;
+
+        if (headingDeg < -180) {
+            headingDeg += 360;
+        } else if (headingDeg > 180) {
+            headingDeg -= 360;
+        }
+
+        return headingDeg;
+    }
+
 }
 
 
