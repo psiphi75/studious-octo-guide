@@ -41,7 +41,7 @@ var logger = require('./logger');
 var declinationDeg = 0;
 if (cfg.location.latitude && cfg.location.longitude) {
     var geomagnetism = require('geomagnetism');
-    var geo = geomagnetism.model().point([cfg.location.longitude, cfg.location.latitude]);
+    var geo = geomagnetism.model().point([cfg.location.latitude, cfg.location.longitude]);
     declinationDeg = geo.decl;
 }
 
@@ -51,11 +51,6 @@ if (cfg.location.latitude && cfg.location.longitude) {
  */
 var header = cfg.util.cloneDeep(cfg);
 header.timestamp = new Date().getTime();
-header.fields = ['time', 'servo.1', 'servo.2',
-                 'gyro.x', 'gyro.y', 'gyro.z',
-                 'accel.x', 'accel.y', 'accel.z',
-                 'compass.heading', 'compass.x', 'compass.y', 'compass.z',
-                 'gps.position.latitude', 'gps.position.longitude', 'gps.position.altitude', 'gps.position.time', 'gps.position.quality', 'gps.position.hdop', ];
 logger.info('Starting the-whole-shebang:');
 logger.info('--- CONFIG START ---');
 logger.info('HEADER:' + JSON.stringify(header));
@@ -219,13 +214,13 @@ function collectData() {
     function sendSensorData() {
         if (!okayToSendData()) return;
         var dataToSend = {
-            gyro: util.roundVector(sensorData.gyro, 1),
-            accel: util.roundVector(sensorData.accel, 1),
+            gyro: util.roundVector(sensorData.gyro, 2),
+            accel: util.roundVector(sensorData.accel, 4),
             gps: lastGPSPosition,
             time: now
         };
         if (sensorData.compassRaw) {
-            dataToSend.compassRaw = util.roundVector(sensorData.compassRaw, 0);
+            dataToSend.compassRaw = util.roundVector(sensorData.compassRaw, 1);
         }
         toy.status(dataToSend);
         logger.debug(dataToSend);
