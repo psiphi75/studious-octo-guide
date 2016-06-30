@@ -214,13 +214,13 @@ function collectData() {
     function sendSensorData() {
         if (!okayToSendData()) return;
         var dataToSend = {
-            gyro: util.roundVector(sensorData.gyro, 2),
-            accel: util.roundVector(sensorData.accel, 4),
+            gyro: util.roundVector(sensorData.gyro, 6),
+            accel: util.roundVector(sensorData.accel, 7),
             gps: lastGPSPosition,
             time: now
         };
         if (sensorData.compassRaw) {
-            dataToSend.compassRaw = util.roundVector(sensorData.compassRaw, 1);
+            dataToSend.compassRaw = util.roundVector(sensorData.compassRaw, 3);
         }
         toy.status(dataToSend);
         logger.debug(dataToSend);
