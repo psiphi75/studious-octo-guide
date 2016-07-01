@@ -40,7 +40,8 @@
         /*
         * How often we check the sensor samples (milliseconds).
         */
-        "sampleRate": 20,
+        "samplePeriod": 5,
+        "samplePeriodMagnetometer": 20,
 
         "options": {
             device: "/dev/i2c-2",

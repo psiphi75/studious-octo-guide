@@ -97,33 +97,36 @@ var lastRudderValue;
  * This will asyncronously retreive the sensor data (gyro, accel and compass).
  * GPS data is not included since it is retreived only every second.
  */
-var lastGPSPosition;
-var sensorSampleRate = cfg.mpu9250.sampleRate;
+var sensorSamplePeriod = cfg.mpu9250.samplePeriod;
+var magSamplePeriod = cfg.mpu9250.samplePeriodMagnetometer;
 var sensorData = {};
-var MAG_SAMPLE_RATE = 1;
-var mag_skip_count = 0;
+
+var lastGPSPosition;
+var lastMagReadTime = 0;
+var lastCompasRawData = {};
 
 function collectData() {
 
     var startTime = new Date().getTime();
-    var now;
+    var readFinishTime;
 
-    // Don't capture the magnetometer every sample, only once every MAG_SAMPLE_RATE.
+    // Don't capture the magnetometer every sample, only once every magSamplePeriod.
     var getSampleFn;
-    if (mag_skip_count - 1 <= 0) {
-        mag_skip_count = MAG_SAMPLE_RATE;
+    if (startTime - lastMagReadTime >= magSamplePeriod) {
+        // DO read magnetometer
+        lastMagReadTime = startTime;
         getSampleFn = imu.getMotion9Async;
     } else {
-        mag_skip_count -= 1;
+        // Don't read magnetometer
         getSampleFn = imu.getMotion6Async;
     }
 
     getSampleFn(function (err, sensorDataArray) {
-        now = new Date().getTime();
+        readFinishTime = new Date().getTime();
         if (err) {
             logger.error('asyncResult():', err);
             sendError();
-            setTimeout(collectData, sensorSampleRate);
+            setTimeout(collectData, sensorSamplePeriod);
         } else {
             sensorData = {
                 accel: {
@@ -156,7 +159,7 @@ function collectData() {
             enrichSensorData();
             sendSensorData();
             logger.info('STATUS:' + JSON.stringify(sensorData));
-            setTimeout(collectData, sensorSampleRate - sensorData.elapsedTime);
+            setTimeout(collectData, sensorSamplePeriod - sensorData.elapsedTime);
         }
     });
 
@@ -189,8 +192,8 @@ function collectData() {
     }
 
     function enrichSensorData() {
-        sensorData.timestamp = now;
-        sensorData.elapsedTime = now - startTime;
+        sensorData.timestamp = readFinishTime;
+        sensorData.elapsedTime = readFinishTime - startTime;
         sensorData.gps = {
             speed: gps.getSpeedData(),
             position: gps.getPositionData()
@@ -212,18 +215,19 @@ function collectData() {
 
     // Emit data at the statusToSend update rate
     function sendSensorData() {
+        if (sensorData.compassRaw) {
+            lastCompasRawData = sensorData.compassRaw;
+        }
         if (!okayToSendData()) return;
         var dataToSend = {
             gyro: util.roundVector(sensorData.gyro, 6),
             accel: util.roundVector(sensorData.accel, 7),
             gps: lastGPSPosition,
-            time: now
+            time: readFinishTime,
+            compassRaw: util.roundVector(lastCompasRawData, 3)
         };
-        if (sensorData.compassRaw) {
-            dataToSend.compassRaw = util.roundVector(sensorData.compassRaw, 3);
-        }
         toy.status(dataToSend);
-        logger.debug(dataToSend);
+        // logger.debug(dataToSend);
     }
 
     function sendError(err) {
@@ -232,11 +236,11 @@ function collectData() {
     }
 
     function okayToSendData() {
-        var elapsedTime = now - lastStatusSendTime;
+        var elapsedTime = readFinishTime - lastStatusSendTime;
         if (elapsedTime < cfg.webRemoteControl.updateRate) {
             return false;
         }
-        lastStatusSendTime = now;
+        lastStatusSendTime = readFinishTime;
         return true;
     }
 
