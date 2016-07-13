@@ -44,7 +44,7 @@ function GPS(serialPort, baudRate) {
         if (data.type === 'RMC') {
             me.speedData = {
                 time: data.time.getTime(),  // convert to parsable time in milliseconds
-                speed: convert_km_per_hour_2_meters_per_second(data.speed),  // convert from km/h to m/s
+                speed: convert_km_per_hour_to_meters_per_second(data.speed),  // convert from km/h to m/s
                 direction: data.track       // Degrees
             };
         }
@@ -61,13 +61,14 @@ function GPS(serialPort, baudRate) {
     });
 
     port.on('data', function(data) {
+        console.log('DEBUG GPS', data);
         gps.update(data);
     });
 
 }
 
-function convert_km_per_hour_2_meters_per_second(kmh) {
-    return 1 / 3.6;
+function convert_km_per_hour_to_meters_per_second(kmh) {
+    return kmh / 3.6;
 }
 
 GPS.prototype.getSpeedData = function getSpeedData() {

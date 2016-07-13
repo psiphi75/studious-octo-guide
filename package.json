@@ -9,14 +9,15 @@
   "author": "Simon M. Werner",
   "private": true,
   "dependencies": {
-    "config": "^1.20.1",
+    "config": "^1.21.0",
     "geomagnetism": "^0.0.2",
-    "gps": "^0.0.9",
-    "mpu9250": ">0.1.4",
+    "gps": "^0.2.0",
+    "mpu9250": "^0.1.5",
     "node-static": "^0.7.7",
-    "octalbonescript": "^1.1.2",
-    "pmtk": "^0.1.1",
-    "web-remote-control": "^1.7.4",
-    "winston": "^2.2.0"
+    "octalbonescript": "^1.2.0",
+    "pmtk": "^0.1.2",
+    "web-remote-control": "^1.7.8",
+    "winston": "^2.2.0",
+    "polo": "^0.8.1"
   }
 }

@@ -27,7 +27,50 @@
  * We just run the proxy.
  */
 
+var DISCOVERY_PROXY_NAME = 'web-remote-control-proxy';
+var polo = require('polo');
+var apps = polo();
+apps.put({
+    name: DISCOVERY_PROXY_NAME,
+	host: getIPAddress(),
+    port: 31234
+});
+
 var wrc = require('web-remote-control');
-wrc.createProxy({ tcp: true,
-                  onlyOneControllerPerChannel: true,
-                  onlyOneToyPerChannel: true });
+wrc.createProxy({
+    tcp: true,
+    onlyOneControllerPerChannel: true,
+    onlyOneToyPerChannel: true
+});
+
+function getIPAddress() {
+
+    var os = require('os');
+    var ifaces = os.networkInterfaces();
+	var addresses = [];
+
+    Object.keys(ifaces).forEach(function (ifname) {
+        var alias = 0;
+
+        ifaces[ifname].forEach(function (iface) {
+            if (iface.family !== 'IPv4' || iface.internal !== false) {
+                // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+                return;
+            }
+
+            if (alias >= 1) {
+                // this single interface has multiple ipv4 addresses
+                console.log(ifname + ':' + alias, iface.address);
+            } else {
+                // this interface has only one ipv4 adress
+                console.log(ifname, iface.address);
+            }
+			addresses.push(iface.address);
+            alias += 1;
+
+        });
+    });
+
+    addresses.sort(function(add) { return (add === '192.168.7.1' ? 1 : -1); });
+	return addresses[0];
+}

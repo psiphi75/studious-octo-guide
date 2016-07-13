@@ -211,6 +211,9 @@ function collectData() {
             sail: lastSailValue,
             rudder: lastRudderValue
         };
+        if (windvane) {
+            sensorData.windvane = windvane.getStatus();
+        }
     }
 
     // Emit data at the statusToSend update rate
@@ -224,7 +227,8 @@ function collectData() {
             accel: util.roundVector(sensorData.accel, 7),
             gps: lastGPSPosition,
             time: readFinishTime,
-            compassRaw: util.roundVector(lastCompasRawData, 3)
+            compassRaw: util.roundVector(lastCompasRawData, 3),
+            windvane: sensorData.windvane
         };
         toy.status(dataToSend);
         // logger.debug(dataToSend);
@@ -281,27 +285,55 @@ var servoRudder = new Servo(obs, cfg.servos.rudder, function () {});
 
 var wrc = require('web-remote-control');
 var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
-                          channel: cfg.webRemoteControl.channel,
-                          udp4: true,
-                          tcp: false,
-                          log: logger.debug };
-var toy = wrc.createToy(wrcOptions);
+                   channel: cfg.webRemoteControl.channel,
+                   udp4: true,
+                   tcp: false,
+                   log: logger.debug };
 logger.debug(wrcOptions);
+var windvane;
+if (cfg.webRemoteControl.useNetworkDiscovery) {
+    var DISCOVERY_PROXY_NAME = 'web-remote-control-proxy';
+    var polo = require('polo');
+    var apps = polo();
+    apps.put({
+        name: 'sailboat',
+        port: 31234
+    });
 
-// Should wait until we are registered before doing anything else
-toy.on('register', function() {
-    logger.info('COMMS:Registered with proxy server:', cfg.webRemoteControl.url);
-});
+    apps.on('up', function (name) {
+        if (name === DISCOVERY_PROXY_NAME) {
+            wrcOptions.proxyUrl = apps.get(name).host;
+            initToyToProxyCommunication();
+            var WindvaneComms = require('./WindvaneComms');
+            windvane = new WindvaneComms(wrcOptions, logger);
+        }
+    });
 
-// Ping the proxy and get the response time (in milliseconds)
-toy.ping(function (time) {
-    if (time > 0) {
-        logger.info('COMMS:Ping time to proxy (ms):', time);
-    }
-});
+} else {
+    initToyToProxyCommunication();
+}
 
-// Listens to commands from the controller
-toy.on('command', function(command) {
+var toy = { status: function() {} };  // dummy function for now... until registered
+function initToyToProxyCommunication() {
+
+    // Don't initialise twice
+    if (toy && toy.ping) return;
+
+    toy = wrc.createToy(wrcOptions);
+
+    // Should wait until we are registered before doing anything else
+    toy.on('register', handleRegistered);
+
+    // Ping the proxy and get the response time (in milliseconds)
+    toy.ping(handlePing);
+
+    // Listens to commands from the controller
+    toy.on('command', handleCommand);
+
+    toy.on('error', logger.error);
+}
+
+function handleCommand(command) {
 
     switch (command.action) {
         case 'note':
@@ -314,9 +346,17 @@ toy.on('command', function(command) {
             logger.error('ERROR - invalid command', JSON.stringify(command));
     }
 
-});
+}
 
-toy.on('error', logger.error);
+function handlePing(time) {
+    if (time > 0) {
+        logger.info('COMMS:Ping time to proxy (ms):', time);
+    }
+}
+
+function handleRegistered() {
+    logger.info('COMMS:Registered with proxy server:', cfg.webRemoteControl.url);
+}
 
 // This function gets called when we receive a 'command' from the controller.
 // It will move the servos respectively.
@@ -343,7 +383,6 @@ function actionMove(command) {
         };
     }
 }
-
 
 /********************************************************************************************
  *

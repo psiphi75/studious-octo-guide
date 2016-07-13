@@ -98,6 +98,10 @@ function startController(channel) {
                     displaySensorStatus(status, 'compassRaw');
                     displaySensorStatus(status, 'accel');
                     displaySensorStatus(status, 'gps');
+                    console.log(status.windvane)
+                    if (status.windvane && status.windvane.headingTrue) {
+                        logReplaceMessage('Compass (heading, speed): ', status.windvane.headingTrue.toFixed(0) + ', ' + status.windvane.speed.toFixed(2));
+                    }
                 }
                 logReplaceMessage('Toy: Time diff (ms): ', (new Date().getTime() - status.time));
 
@@ -311,7 +315,7 @@ function clearLog() {       // eslint-disable-line no-unused-vars
 
 function logReplaceMessage(key, value) {
     value = value.toString();
-    var re = new RegExp('>' + key.replace('(', '\\(').replace(')', '\\)') + '[\\.\\-0-9a-zA-Z]*<', 'g');
+    var re = new RegExp('>' + key.replace('(', '\\(').replace(')', '\\)') + '[\\ \\,\\.\\-0-9a-zA-Z]*<', 'g');
 
     var el = $('#log>.card-block');
     var matches = el.html().match(re);

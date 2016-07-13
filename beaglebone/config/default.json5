@@ -5,7 +5,8 @@
     "webRemoteControl": {
         "url": "localhost",   // The actual URL of the proxy
         "channel": "23",      // The channel we operate on
-        "updateRate": 500    // How often we send a status update over the network (milliseconds)
+        "updateRate": 100,    // How often we send a status update over the network (milliseconds)
+        "useNetworkDiscovery": true     // Default to network discovery
     },
 
     /*
