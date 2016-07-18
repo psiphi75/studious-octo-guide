@@ -16,7 +16,7 @@
     "node-static": "^0.7.7",
     "octalbonescript": "^1.2.0",
     "pmtk": "^0.1.2",
-    "web-remote-control": "^1.7.8",
+    "web-remote-control": "^1.8.0",
     "winston": "^2.2.0",
     "polo": "^0.8.1"
   }

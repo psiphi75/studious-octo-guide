@@ -40,7 +40,8 @@ var wrc = require('web-remote-control');
 wrc.createProxy({
     tcp: true,
     onlyOneControllerPerChannel: true,
-    onlyOneToyPerChannel: true
+    onlyOneToyPerChannel: true,
+    allowObservers: true
 });
 
 function getIPAddress() {

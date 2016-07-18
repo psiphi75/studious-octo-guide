@@ -30,8 +30,7 @@ var NETWORK_UPDATE_FREQ = 5; // How many times per second to update the network 
 var BROWSER_UPDATE_FREQ = 30; // How many times per second to refresh the browser screen
 var CONFIG_UPDATE_RATE = 100; // How frequently we update the config value
 
-var Device = require('Device');
-var WebClientConnection = require('WebClientConnection');
+var wrc = require('web-remote-control');
 var controller;
 
 var connectionStatus = 'notconnected';
@@ -50,10 +49,9 @@ function startController(channel) {
 
     var firstStatusMessage = true;
 
-    controller = new Device({
-        deviceType: 'controller',
+    controller = wrc.createController({
         channel: channel
-    }, WebClientConnection);
+    });
 
     controller.sendNote = function controllerSendNote(note) {
         controller.command({
