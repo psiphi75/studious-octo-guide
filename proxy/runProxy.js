@@ -38,7 +38,9 @@ apps.put({
 
 var wrc = require('web-remote-control');
 wrc.createProxy({
+    udp4: true,
     tcp: true,
+    socketio: true,
     onlyOneControllerPerChannel: true,
     onlyOneToyPerChannel: true,
     allowObservers: true

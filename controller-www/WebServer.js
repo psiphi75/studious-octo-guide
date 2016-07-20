@@ -46,4 +46,4 @@ require('http').createServer(function (request, response) {
 
 }).listen(port);
 
-console.log('Webserver listening on port: ', port);
+console.log('Point your mobile phone to http://[IP THIS COMPUTER]:' + port);

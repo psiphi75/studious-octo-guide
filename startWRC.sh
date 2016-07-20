@@ -34,7 +34,7 @@ forever start                        \
 # Start the WebServer
 #
 cd $WRC_DIR/controller-www/
-cp ../node_modules/web-remote-control/www/web-remote-control.js ./public
+cp ../node_modules/web-remote-control/www/web-remote-control.js ./public/res
 forever start                        \
     --append                         \
     --watchDirectory $WRC_DIR/       \
