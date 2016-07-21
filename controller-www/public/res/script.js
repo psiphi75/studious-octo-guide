@@ -50,6 +50,7 @@ function startController(channel) {
     var firstStatusMessage = true;
 
     controller = wrc.createController({
+        proxyUrl: window.location.hostname,
         channel: channel
     });
 
@@ -61,6 +62,7 @@ function startController(channel) {
     };
 
     var lastUpdateTime = 0;
+    var lastTime = new Date().getTime();
     controller.connection.socket.on('connect', function() {
 
         if (connectionStatus === 'notconnected') {
@@ -91,17 +93,17 @@ function startController(channel) {
                     }, 300);
                 }
 
-                if (typeof status === 'object') {
-                    displaySensorStatus(status, 'gyro');
-                    displaySensorStatus(status, 'compassRaw');
-                    displaySensorStatus(status, 'accel');
-                    displaySensorStatus(status, 'gps');
-                    console.log(status.windvane)
-                    if (status.windvane && status.windvane.headingTrue) {
-                        logReplaceMessage('Compass (heading, speed): ', status.windvane.headingTrue.toFixed(0) + ', ' + status.windvane.speed.toFixed(2));
+                if (typeof status === 'object' && typeof status.boat === 'object') {
+                    displaySensorStatus(status.boat, 'gyro');
+                    displaySensorStatus(status.boat, 'compassRaw');
+                    displaySensorStatus(status.boat, 'accel');
+                    displaySensorStatus(status.boat, 'gps');
+                    if (status.environment && status.environment.wind && status.environment.wind.heading) {
+                        logReplaceMessage('Compass (heading, speed): ', status.environment.wind.heading.toFixed(0) + ', ' + status.environment.wind.speed.toFixed(2));
                     }
                 }
-                logReplaceMessage('Toy: Time diff (ms): ', (new Date().getTime() - status.time));
+                logReplaceMessage('Toy: Time diff (ms): ', (lastUpdateTime - lastTime));
+                lastTime = lastUpdateTime;
 
             });
             controller.on('error', function(err) {
