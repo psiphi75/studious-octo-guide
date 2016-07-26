@@ -34,7 +34,8 @@
 
     "gps": {
         "serialport": "/dev/ttyO4",
-        "baudrate": 115200
+        "baudrate": 115200,
+        "updateRate": 5             // Update rate in Hz
     },
 
     "mpu9250": {

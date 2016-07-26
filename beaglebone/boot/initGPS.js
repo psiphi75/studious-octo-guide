@@ -55,11 +55,12 @@ function newPMTK() {
 }
 
 function setNmeaOutput() {
-    pmtk.commands.setNmeaOutput(['GGA', 'RMC'], stdCallbackFactory('Change NMEA output', setTo10Hz));
+    pmtk.commands.setNmeaOutput(['GGA', 'RMC'], stdCallbackFactory('Change NMEA output', setUpdateRate));
 }
 
-function setTo10Hz() {
-    pmtk.commands.setNmeaOutputRate(100, stdCallbackFactory('Change to 10 Hz', function() {}));
+function setUpdateRate() {
+    var gpsFreq = 1000 / cfg.gps.updateRate;
+    pmtk.commands.setNmeaOutputRate(gpsFreq, stdCallbackFactory('Change to ' + cfg.gps.updateRate + ' Hz', function() {}));
 }
 
 function stdCallbackFactory(name, nextFn) {
