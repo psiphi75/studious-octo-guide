@@ -21,72 +21,38 @@
  *                                                                   *
  *********************************************************************/
 
-/* eslint-env jquery */
-/* globals logError controller */
+'use strict';
 
-function Notes(noteId) { // eslint-disable-line no-unused-vars
+var util = require('./util');
 
-    'use strict';
+var fn = {
+    calcApparentWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
+        // https://en.wikipedia.org/wiki/Apparent_wind
 
-    // Find the element
-    var $htmlElem = $('#' + noteId);
-    if (!$htmlElem) {
-        logError('Notes(): note not found: ' + noteId);
-        return null;
+        // Note: wind "direction" from windvane is where the wind is coming from.  We change this to the other direction
+        windHeading = util.wrapDegrees(180 + windHeading);
+
+        var trueWindVec = util.createVector(windSpeed, util.toRadians(windHeading));
+        var boatVec = util.createVector(boatSpeed, util.toRadians(boatHeading));
+
+        // The ApparentWind vector
+        var x = boatVec.x + trueWindVec.x;
+        var y = boatVec.y + trueWindVec.y;
+
+        var awHeading = util.wrapDegrees(90 - util.toDegrees(Math.atan2(y, x)));
+        var awHeadingBoat = util.wrapDegrees(boatHeading - awHeading);
+        var awSpeed = Math.sqrt(x * x + y * y);
+
+        return {
+            heading: awHeading,
+            headingToBoat: awHeadingBoat,
+            speed: awSpeed
+        };
+    },
+    calcNextPosition: function(oldLat, oldLong, newSpeed, newHeading, drift, time) {
+        // FIXME: Need to include drift in speed and heading
+        return util.getNextLatLongFromVelocity(oldLat, oldLong, newSpeed, newHeading, time.delta);
     }
+};
 
-    // Restore from local storage
-    var note = localStorage.getItem(noteId);
-    if (typeof note === 'string') {
-        noteSet(note);
-        $htmlElem.val(note);
-    }
-
-    // Handle the note button click
-    $('#btn-' + noteId).on('click', noteSend);
-
-
-    /**
-     * Send the note to the toy.
-     */
-    function noteSend() {
-
-        // Get the latest note
-        setFromTextBox();
-
-        // Send the to the toy
-        controller.sendNote(note);
-
-    }
-
-
-    /**
-     * Set the note value and put it in localStorage
-     * @param  {string} noteStr The new note value
-     */
-    function noteSet(noteStr) {
-        note = noteStr;
-
-        // Save the note to local storage.
-        localStorage.setItem(noteId, note);
-    }
-
-    /**
-     * Get the note value from the text box.
-     */
-    function setFromTextBox() {
-        var tmpNote = $htmlElem.val();
-        if (typeof tmpNote !== 'string' || tmpNote === '') {
-            logError('Need to enter a value for the note');
-            return null;
-        }
-        noteSet(tmpNote);
-    }
-
-    return {
-        send: noteSend,
-        set: noteSet,
-        setFromTextBox: setFromTextBox
-    };
-
-}
+module.exports = fn;

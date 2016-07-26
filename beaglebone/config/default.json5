@@ -5,7 +5,7 @@
     "webRemoteControl": {
         "url": "localhost",   // The actual URL of the proxy
         "channel": "23",      // The channel we operate on
-        "updateRate": 100,    // How often we send a status update over the network (milliseconds)
+        "updateInterval": 100,    // How often we send a status update over the network (milliseconds)
         "useNetworkDiscovery": true     // Default to network discovery
     },
 
@@ -42,8 +42,8 @@
         /*
         * How often we check the sensor samples (milliseconds).
         */
-        "samplePeriod": 5,
-        "samplePeriodMagnetometer": 20,
+        "sampleInterval": 5,
+        "sampleIntervalMagnetometer": 20,
 
         "options": {
             device: "/dev/i2c-2",

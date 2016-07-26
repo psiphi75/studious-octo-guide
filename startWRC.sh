@@ -33,13 +33,10 @@ forever start                        \
 #
 # Start the WebServer
 #
-cd $WRC_DIR/controller-www/
-cp ../node_modules/web-remote-control/www/web-remote-control.js ./public/res
+cd $WRC_DIR/node_modules/wrc-controller/
 forever start                        \
     --append                         \
-    --watchDirectory $WRC_DIR/       \
-    --watchDirectory $WRC_DIR/controller-www/   \
     -l ${WEB_LOG}                    \
     -e ${WEB_LOG}                    \
     --uid wrc-www                    \
-     WebServer.js
+     runWebServer.js

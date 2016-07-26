@@ -25,7 +25,7 @@
 
 function GPS(serialPort, baudRate) {
 
-    var me = this;
+    var self = this;
     var gpsModule = require('gps');
     var gps = new gpsModule();
 
@@ -35,21 +35,33 @@ function GPS(serialPort, baudRate) {
         parser: SerialPort.parsers.readline('\r\n')
     });
 
+    // FIXME: This code needs to be removed
+    var lastGPS = {
+        sameCounter: -1,
+        notValid: -1
+    };
+
     this.speedData = null;
     this.positionData = null;
 
     gps.on('data', function(data) {
-        if (data.lat === null || (data.lat === 0 && data.lon === 0)) return;
-        if (!data.valid) return;
+        if (data.lat === null || (data.lat === 0 && data.lon === 0)) {
+            lastGPS.notValid += 1;
+            return;
+        }
+        if (!data.valid) {
+            lastGPS.notValid += 1;
+            return;
+        }
         if (data.type === 'RMC') {
-            me.speedData = {
+            self.speedData = {
                 time: data.time.getTime(),  // convert to parsable time in milliseconds
                 speed: convert_km_per_hour_to_meters_per_second(data.speed),  // convert from km/h to m/s
                 direction: data.track       // Degrees
             };
         }
         if (data.type === 'GGA') {
-            me.positionData = {
+            self.positionData = {
                 time: data.time.getTime(), // convert to parsable time in milliseconds
                 latitude: data.lat,
                 longitude: data.lon,
@@ -57,11 +69,18 @@ function GPS(serialPort, baudRate) {
                 quality: data.quality,
                 hdop: data.hdop
             };
+            if (self.positionData.latitude === lastGPS.latitude && self.positionData.longitude === lastGPS.longitude) {
+                lastGPS.sameCounter += 1;
+            } else {
+                lastGPS.sameCounter = 0;
+            }
+            lastGPS.latitude = self.positionData.latitude;
+            lastGPS.longitude = self.positionData.longitude;
         }
     });
 
     port.on('data', function(data) {
-        console.log('DEBUG GPS', data);
+        console.log('DEBUG GPS (same=' + lastGPS.sameCounter + ', !valid=' + lastGPS.notValid + ')', data);
         gps.update(data);
     });
 
@@ -71,16 +90,17 @@ function convert_km_per_hour_to_meters_per_second(kmh) {
     return kmh / 3.6;
 }
 
-GPS.prototype.getSpeedData = function getSpeedData() {
+GPS.prototype.getSpeed = function () {
     var retVal = this.speedData;
     this.speedData = null;
     return retVal;
 };
 
-GPS.prototype.getPositionData = function getPositionData() {
+GPS.prototype.getPosition = function () {
     var retVal = this.positionData;
     this.positionData = null;
     return retVal;
 };
+
 
 module.exports = GPS;

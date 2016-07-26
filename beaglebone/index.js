@@ -36,15 +36,6 @@
 var cfg = require('config');
 var logger = require('./logger');
 
-// Required for the compass to determine true north (from the magnetic
-// declination).  The latitude / longitude values can be approximate.
-var declinationDeg = 0;
-if (cfg.location.latitude && cfg.location.longitude) {
-    var geomagnetism = require('geomagnetism');
-    var geo = geomagnetism.model().point([cfg.location.latitude, cfg.location.longitude]);
-    declinationDeg = geo.decl;
-}
-
 
 /*
  * Output config settings - we will pick these up later.
@@ -66,21 +57,19 @@ logger.info('--- CONFIG END ---');
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
+var boatUtil = require('./boatUtil');
 var util = require('./util');
 
 var GPS = require('./gps');
 var gps = new GPS(cfg.gps.serialport, cfg.gps.baudrate);
 
-var Mpu9250 = require('mpu9250');
-Mpu9250.prototype.getMotion9Async = function(callback) {
-    callback(null, imu.getMotion9());
-};
-Mpu9250.prototype.getMotion6Async = function(callback) {
-    callback(null, imu.getMotion6());
-};
-var imu = new Mpu9250(cfg.mpu9250.options);
+var Attitude = require('./Attitude');
+var attitude = new Attitude(cfg);
+attitude.setDeclination(cfg.location);
+attitude.startCapture();
 
-imu.initialize();
+var Velocity = require('./Velocity');
+var velocity = new Velocity();
 
 /*******************************************************************************
  *                                                                             *
@@ -88,183 +77,60 @@ imu.initialize();
  *                                                                             *
  *******************************************************************************/
 
-var lastStatusSendTime = 0;
 var lastSailValue;
 var lastRudderValue;
 
-
-/**
- * This will asyncronously retreive the sensor data (gyro, accel and compass).
- * GPS data is not included since it is retreived only every second.
- */
-var sensorSamplePeriod = cfg.mpu9250.samplePeriod;
-var magSamplePeriod = cfg.mpu9250.samplePeriodMagnetometer;
-var sensorData = {};
-
-var lastGPSPosition;
-var lastMagReadTime = 0;
-var lastCompasRawData = {};
-
+//
+// Sends data to the controller
+//
+function sendData() {
+    var data = collectData();
+    toy.status(data);
+    logger.info('STATUS:' + JSON.stringify(data));
+}
+// Collect the data into a nice object ready for sending
+var isFirstGPS = true;
 function collectData() {
 
-    var startTime = new Date().getTime();
-    var readFinishTime;
+    var gpsPosition = gps.getPosition();
+    if (isFirstGPS && util.isValidGPS(gpsPosition)) {
+        attitude.setDeclination(gpsPosition);
+        isFirstGPS = false;
+    }
 
-    // Don't capture the magnetometer every sample, only once every magSamplePeriod.
-    var getSampleFn;
-    if (startTime - lastMagReadTime >= magSamplePeriod) {
-        // DO read magnetometer
-        lastMagReadTime = startTime;
-        getSampleFn = imu.getMotion9Async;
+    var wind;
+    if (windvane) {
+        wind = windvane.getStatus();
     } else {
-        // Don't read magnetometer
-        getSampleFn = imu.getMotion6Async;
+        wind = {
+            speed: 0,
+            heading: 0
+        };
     }
 
-    getSampleFn(function (err, sensorDataArray) {
-        readFinishTime = new Date().getTime();
-        if (err) {
-            logger.error('asyncResult():', err);
-            sendError();
-            setTimeout(collectData, sensorSamplePeriod);
-        } else {
-            sensorData = {
-                accel: {
-                    x: sensorDataArray[0],
-                    y: sensorDataArray[1],
-                    z: sensorDataArray[2]
-                },
-                gyro: {
-                    x: sensorDataArray[3],
-                    y: sensorDataArray[4],
-                    z: sensorDataArray[5]
+    var boatVelocity = velocity.calcFromPosition(gpsPosition);
+
+    var apparentWind;
+    if (boatVelocity !== null) {
+        apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
+    }
+
+    return {
+           dt: cfg.webRemoteControl.updateInterval,
+           boat: {
+                attitude: attitude.getAttitude(),
+                gps: gpsPosition,
+                velocity: boatVelocity,
+                apparentWind: apparentWind,
+                servos: {
+                    sail: lastSailValue,
+                    rudder: lastRudderValue
                 }
-            };
-
-            // Do transformations to get the sensors aligned with the the body.  Accel and gyro are on the same axis.
-            // Magnetometer is (strangely) using a different axis.
-            sensorData.accel = transformAccelGyro(sensorData.accel);
-            sensorData.gyro = transformAccelGyro(sensorData.gyro);
-
-            // Only read mag data if it's available
-            if (sensorDataArray.length > 6) {
-                sensorData.compassRaw = {
-                    x: sensorDataArray[6],
-                    y: sensorDataArray[7],
-                    z: sensorDataArray[8]
-                };
-                sensorData.compassRaw = transformMag(sensorData.compassRaw);
-            }
-
-            enrichSensorData();
-            sendSensorData();
-            logger.info('STATUS:' + JSON.stringify(sensorData));
-            setTimeout(collectData, sensorSamplePeriod - sensorData.elapsedTime);
-        }
-    });
-
-    /**
-     * Transformation:
-     *  - Rotate around Z axis 180 degrees
-     *  - Rotate around X axis -90 degrees
-     * @param  {object} s {x,y,z} sensor
-     * @return {object}   {x,y,z} transformed
-     */
-    function transformAccelGyro(s) {
-        return {
-            x: -s.x,
-            y: s.z,
-            z: s.y
-        };
-    }
-
-    /**
-     * Transformation: to get magnetometer aligned
-     * @param  {object} s {x,y,z} sensor
-     * @return {object}   {x,y,z} transformed
-     */
-    function transformMag(s) {
-        return {
-            x: -s.y,
-            y: -s.z,
-            z: s.x
-        };
-    }
-
-    function enrichSensorData() {
-        sensorData.timestamp = readFinishTime;
-        sensorData.elapsedTime = readFinishTime - startTime;
-        sensorData.gps = {
-            speed: gps.getSpeedData(),
-            position: gps.getPositionData()
-        };
-        if (sensorData.gps.position) {
-            lastGPSPosition = {
-                latitude: util.round(sensorData.gps.position.latitude, 6),
-                longitude: util.round(sensorData.gps.position.longitude, 6)
-            };
-        }
-        if (sensorData.compassRaw) {
-            sensorData.compass = calcHeadingDeg(sensorData.compassRaw);
-        }
-        sensorData.servo = {
-            sail: lastSailValue,
-            rudder: lastRudderValue
-        };
-        if (windvane) {
-            sensorData.windvane = windvane.getStatus();
-        }
-    }
-
-    // Emit data at the statusToSend update rate
-    function sendSensorData() {
-        if (sensorData.compassRaw) {
-            lastCompasRawData = sensorData.compassRaw;
-        }
-        if (!okayToSendData()) return;
-        var dataToSend = {
-            gyro: util.roundVector(sensorData.gyro, 6),
-            accel: util.roundVector(sensorData.accel, 7),
-            gps: lastGPSPosition,
-            time: readFinishTime,
-            compassRaw: util.roundVector(lastCompasRawData, 3),
-            windvane: sensorData.windvane
-        };
-        toy.status(dataToSend);
-        // logger.debug(dataToSend);
-    }
-
-    function sendError(err) {
-        if (!okayToSendData()) return;
-        toy.status({ error: err });
-    }
-
-    function okayToSendData() {
-        var elapsedTime = readFinishTime - lastStatusSendTime;
-        if (elapsedTime < cfg.webRemoteControl.updateRate) {
-            return false;
-        }
-        lastStatusSendTime = readFinishTime;
-        return true;
-    }
-
-    /**
-     * Calculate True North heading.
-     * @param  {[type]} mag [description]
-     * @return {[type]}     [description]
-     */
-    function calcHeadingDeg(mag) {
-        var headingDeg = Math.atan2(mag.y, mag.x) * 180 / Math.PI;
-        headingDeg += declinationDeg;
-
-        if (headingDeg < -180) {
-            headingDeg += 360;
-        } else if (headingDeg > 180) {
-            headingDeg -= 360;
-        }
-
-        return headingDeg;
-    }
+          },
+          environment: {
+               wind: wind
+          }
+    };
 
 }
 
@@ -390,4 +256,4 @@ function actionMove(command) {
  *
  ********************************************************************************************/
 
-collectData();
+setInterval(sendData, cfg.webRemoteControl.updateInterval);

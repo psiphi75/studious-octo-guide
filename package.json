@@ -9,6 +9,7 @@
   "author": "Simon M. Werner",
   "private": true,
   "dependencies": {
+    "ahrs": "^1.0.1",
     "config": "^1.21.0",
     "geomagnetism": "^0.0.2",
     "gps": "^0.2.0",
@@ -16,8 +17,9 @@
     "node-static": "^0.7.7",
     "octalbonescript": "^1.2.0",
     "pmtk": "^0.1.2",
-    "web-remote-control": "^1.8.0",
+    "polo": "^0.8.1",
+    "web-remote-control": "^1.8.1",
     "winston": "^2.2.0",
-    "polo": "^0.8.1"
+    "wrc-controller": "^0.0.6"
   }
 }
