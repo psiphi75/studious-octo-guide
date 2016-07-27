@@ -21,8 +21,22 @@
      * Which pins the servos are linked to.
      */
     "servos": {
-        "sail": "P8_13",
-        "rudder": "P8_19"
+        "sail": {
+            "pin": "P8_13",
+            "scalar": {
+                "min": 0.07,
+                "center": 0.09,
+                "max": 0.11
+            }
+        },
+        "rudder": {
+            "pin": "P8_19",
+            "scalar": {
+                "min": 0.07,
+                "center": 0.09,
+                "max": 0.11
+            }
+        }
     },
 
     /*
@@ -74,37 +88,49 @@
 
             // These values were generated using calibrate_mag.js - you will want to create your own.
             magCalibration: {
-                min: { x: -106.171875, y: -56.8125, z: -14.828125 },
-                max: { x: 71.9609375, y: 117.17578125, z: 164.25 },
-                offset: { x: -17.10546875, y: 30.181640625, z: 74.7109375 },
-                scale: {
-                    x: 0.61870,
-                    y: 0.63344,
-                    z: 0.61544
-                }
-            },
+                    min: {
+                        x: -104.9921875,
+                        y: -48.52734375,
+                        z: -14.828125
+                    },
+                    max: {
+                        x: 66.0625,
+                        y: 121.91015625,
+                        z: 164.25
+                    },
+                    offset: {
+                        x: -19.46484375,
+                        y: 36.69140625,
+                        z: 74.7109375
+                    },
+                    scale: {
+                        x: 0.657181,
+                        y: 0.654810,
+                        z: 0.688007
+                    }
+                },
 
             // These values were generated using calibrate_gyro.js - you will want to create your own.
             // NOTE: These are temperature dependent.
             gyroBiasOffset: {
-                x: -1.068045801,
-                y: -0.156656488,
-                z: 1.3846259541
+                x: -0.478961832061068,
+                y: -0.14835114503816793,
+                z: 0.4523969465648852
             },
 
             // These values were generated using calibrate_accel.js - you will want to create your own.
-            accelCalibration: {
-                offset: {
-                    x: 0.00943176,
-                    y: 0.00170817,
-                    z: 0.05296142
-                },
-                scale: {
-                    x: [-0.9931640, 1.0102189],
-                    y: [-0.9981974, 1.0055884],
-                    z: [-0.9598844, 1.0665967]
-                }
+            accelCalibration: { offset: {
+                                   x: 0.011176961263020833,
+                                   y: 0.003827718098958333,
+                                   z: 0.03787556966145833
+                               },
+                               scale: {
+                                   x: [-0.99033203125, 1.0129679361979167],
+                                   y: [-0.9979768880208333, 1.0061800130208334],
+                                   z: [-0.9573575846354166, 1.07052001953125]
+                               }
             }
+
 
         }
     }

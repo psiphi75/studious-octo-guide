@@ -25,21 +25,28 @@
 
 /**
  * Initialise the servo / PWM for the BeagleBone Green / Black.
+ * @param {string}   name     The name of the servo.
  * @param {object}   obs      The octalbonescript object.
- * @param {string}   pin      The BeagleBone GPIO (e.g. 'P9_16').
+ * @param {object}   cfg      The config {min, center, max, pin: The BeagleBone GPIO (e.g. 'P9_16')}.
  * @param {Function} callback The callbak for when the pin is initalised.
  */
-function Servo(obs, pin, callback) {
+function Servo(name, obs, cfg, callback) {
 
     if (typeof obs !== 'object' || typeof obs.pinMode !== 'function') {
         callback(null, 'Servo: Error: Expecting octalbonescript to be defined');
     }
 
     this.obs = obs;
-    this.pin = pin;
+    this.pin = cfg.pin;
+    this.scalar = {
+        min: cfg.scalar.min,
+        center: cfg.scalar.center,
+        max: cfg.scalar.max
+    };
     this.dutyMin = 0.03;
     this.currentPosition = 0;
     this.up = false;
+    this.value = 0;
 
     var self = this;
     this.obs.pinMode(this.pin, this.obs.OUTPUT, function(err, data) {
@@ -58,6 +65,9 @@ function Servo(obs, pin, callback) {
  */
 Servo.prototype.set = function (value, callback) {
 
+    this.value = value;
+    var scaledValue = this.scale(value);
+
     if (!this.up) {
         callback(null, 'This servo is currently not ready: ' + this.pin);
     }
@@ -66,7 +76,20 @@ Servo.prototype.set = function (value, callback) {
         callback = defaultCB;
     }
 
-    this.obs.analogWrite(this.pin, value, 60, callback);
+    this.obs.analogWrite(this.pin, adjustPWM(scaledValue), 60, callback);
+
+    //
+    // This is the default adjust function for the BeagleBone for PWM.
+    //
+    function adjustPWM(val) {
+        val += 1.01;
+        val *= 0.075;
+        return val;
+    }
+};
+
+Servo.prototype.getLastValue = function () {
+    return this.value;
 };
 
 
@@ -87,8 +110,33 @@ Servo.prototype.relax = function (callback) {
     this.obs.pinMode(this.pin, this.obs.OUTPUT, callback);
 };
 
-function defaultCB(err, data) {
-    console.log(err, data);
+
+/**
+ * Scale the value.  Where -1 => min, 0 => center, 1 => max.
+ * @return  {number} The scaled value.
+ */
+Servo.prototype.scale = function (value) {
+
+    if (value < -1) value = -1;
+    if (value > 1) value = 1;
+
+    //
+    // Do the scaling
+    //
+    var m;
+    if (value >= 0) {
+        m = this.scalar.max - this.scalar.center;
+    } else {
+        m = this.scalar.center - this.scalar.min;
+    }
+    value = value * m + this.scalar.center;
+
+    return value;
+
+};
+
+function defaultCB(err) {
+    if (err) console.error('There was an error with a servo:', err);
 }
 
 module.exports = Servo;

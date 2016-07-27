@@ -23,10 +23,6 @@
 
 'use strict';
 
-/*
- * TODO: Refactor this code to: config / sensors / comms.
- */
-
 /*******************************************************************************
  *                                                                             *
  *          Configuration settings - need to be customised to requirements     *
@@ -77,9 +73,6 @@ var velocity = new Velocity();
  *                                                                             *
  *******************************************************************************/
 
-var lastSailValue;
-var lastRudderValue;
-
 //
 // Sends data to the controller
 //
@@ -123,8 +116,8 @@ function collectData() {
                 velocity: boatVelocity,
                 apparentWind: apparentWind,
                 servos: {
-                    sail: lastSailValue,
-                    rudder: lastRudderValue
+                    sail: servoSail.getLastValue(),
+                    rudder: servoRudder.getLastValue()
                 }
           },
           environment: {
@@ -146,15 +139,16 @@ function collectData() {
 
 // Set up the two servos.
 var Servo = require('./Servo');
-var servoSail = new Servo(obs, cfg.servos.sail, function () {});
-var servoRudder = new Servo(obs, cfg.servos.rudder, function () {});
+var servoSail = new Servo('Sail', obs, cfg.servos.sail, function () {});
+var servoRudder = new Servo('Rudder', obs, cfg.servos.rudder, function () {});
 
 var wrc = require('web-remote-control');
 var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
                    channel: cfg.webRemoteControl.channel,
-                   udp4: true,
-                   tcp: false,
+                   udp4: false,
+                   tcp: true,
                    log: logger.debug };
+
 logger.debug(wrcOptions);
 var windvane;
 if (cfg.webRemoteControl.useNetworkDiscovery) {
@@ -228,26 +222,9 @@ function handleRegistered() {
 // It will move the servos respectively.
 function actionMove(command) {
 
-    lastSailValue = adjust(command.servoSail);
-    lastRudderValue = adjust(command.servoRudder);
+    servoSail.set(command.servoSail);
+    servoRudder.set(command.servoRudder);
 
-    servoSail.set(lastSailValue, getServoSetCB('sail'));
-    servoRudder.set(lastRudderValue, getServoSetCB('rudder'));
-
-    function adjust(val) {
-        val += 1.01;
-        val *= 0.075;
-        return val;
-    }
-
-    function getServoSetCB(servo) {
-        return function servoSetCB(err) {
-            if (err) {
-                logger.error('servoSetCB: error for the ' + servo + ' servo: ', err);
-                return;
-            }
-        };
-    }
 }
 
 /********************************************************************************************

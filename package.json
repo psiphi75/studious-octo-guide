@@ -18,8 +18,8 @@
     "octalbonescript": "^1.2.0",
     "pmtk": "^0.1.2",
     "polo": "^0.8.1",
-    "web-remote-control": "^1.8.1",
+    "web-remote-control": "^1.9.0",
     "winston": "^2.2.0",
-    "wrc-controller": "^0.0.6"
+    "wrc-controller": "^0.0.7"
   }
 }
