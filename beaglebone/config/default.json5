@@ -47,7 +47,12 @@
     },
 
     "gps": {
-        "serialport": "/dev/ttyO4",
+        "1": {
+            "serialport": "/dev/ttyO2",
+        },
+        "2": {
+            "serialport": "/dev/ttyO4",
+        },
         "baudrate": 115200,
         "updateRate": 5             // Update rate in Hz
     },

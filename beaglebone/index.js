@@ -56,8 +56,8 @@ var obs = require('octalbonescript');
 var boatUtil = require('./boatUtil');
 var util = require('./util');
 
-var GPS = require('./gps');
-var gps = new GPS(cfg.gps.serialport, cfg.gps.baudrate);
+var GPSSync = require('./GPSSync');
+var gps = new GPSSync(cfg);
 
 var Attitude = require('./Attitude');
 var attitude = new Attitude(cfg);
@@ -167,6 +167,10 @@ if (cfg.webRemoteControl.useNetworkDiscovery) {
             var WindvaneComms = require('./WindvaneComms');
             windvane = new WindvaneComms(wrcOptions, logger);
         }
+    });
+
+    apps.on('error', function (err) {
+        logger.error('POLO: ' + err);
     });
 
 } else {

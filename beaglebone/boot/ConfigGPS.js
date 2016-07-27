@@ -24,19 +24,52 @@
 'use strict';
 
 /**
- * This script will configure the GPS devices.  It will:
+ * This script will configure the GPS device.  It will:
  *  - detect the baudrate
  *  - set the baudrate to 115200 (default is 9600)
  *  - set the NMEA output to only GGA and RMC sentences
  *  - set the NMEA rate to 10 Hz (default is 1 Hz)
  */
 
-console.log('Running initGPS.js');
+var PMTK = require('pmtk');
 
-var cfg = require('config');
-var configGPS = require('./ConfigGPS');
+module.exports = function ConfigGPS(serialport, baudrate, updateRate, allDoneCallback) {
+    var pmtk = new PMTK(serialport, 'detect', stdCallbackFactory('Initialise and autodetect speed', setBaudrate));
 
+    function setBaudrate() {
+        console.log('\nSetting baudrate (' + baudrate + '):');
+        pmtk.commands.setBaudrate(baudrate, function (err) {
+            if (err === 'timeout') {
+                console.log('Change baudrate successful: ', baudrate);
+                newPMTK();
+            } else if (err) {
+                console.log('ERROR setting baudrate: ', err);
+            }
+        });
+    }
 
-configGPS(cfg.gps['1'].serialport, cfg.gps.baudrate, cfg.gps.updateRate, function() {
-    configGPS(cfg.gps['2'].serialport, cfg.gps.baudrate, cfg.gps.updateRate, function () {});
-});
+    function newPMTK() {
+        pmtk = new PMTK(serialport, baudrate, stdCallbackFactory('Initialise fresh PMTK @' + baudrate + ' baud', setNmeaOutput));
+    }
+
+    function setNmeaOutput() {
+        pmtk.commands.setNmeaOutput(['GGA', 'RMC'], stdCallbackFactory('Change NMEA output', setUpdateRate));
+    }
+
+    function setUpdateRate() {
+        var gpsFreq = 1000 / updateRate;
+        pmtk.commands.setNmeaOutputRate(gpsFreq, stdCallbackFactory('Change to ' + updateRate + ' Hz', allDoneCallback));
+    }
+
+    function stdCallbackFactory(name, nextFn) {
+        console.log('\nStarting ' + name + ':');
+        return function (err, result) {
+            if (err) {
+                console.log('ERROR: ', name + ': ', err);
+            } else {
+                console.log(name + ' successful: ', result);
+            }
+            nextFn();
+        };
+    }
+};

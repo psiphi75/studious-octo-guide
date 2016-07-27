@@ -43,7 +43,8 @@ obs.loadCape('cape-universaln');
 console.log('Loaded the universal cape');
 
 // Enable serial for the GPS device
-enableSerial(cfg.gps.serialport);
+enableSerial(cfg.gps['1'].serialport);
+enableSerial(cfg.gps['2'].serialport);
 
 // Enable serial for the GPRS Modem
 enableSerial(cfg.modem.serialport);
