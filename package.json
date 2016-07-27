@@ -20,6 +20,6 @@
     "polo": "^0.8.1",
     "web-remote-control": "^1.9.0",
     "winston": "^2.2.0",
-    "wrc-controller": "^0.0.7"
+    "wrc-controller": "^0.0.8"
   }
 }
