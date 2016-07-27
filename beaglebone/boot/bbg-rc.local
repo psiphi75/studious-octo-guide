@@ -64,8 +64,8 @@ ${NODE} ${SCRIPT_DIR}/boot/initGPS.js
 # echo "### 2) Enable the network (PPP)"
 # pon
 # sleep 10
-#echo "### 2) Start the proxy"
-#${SCRIPT_DIR}/../startWRC.sh
+echo "### 2) Start the proxy"
+${SCRIPT_DIR}/../startWRC.sh
 
 
 echo "### 3) Start the device afer waiting for a bit"

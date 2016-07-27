@@ -1,9 +1,9 @@
 {
   "name": "studious-octo-guide",
   "version": "0.0.1",
-  "main": "the-whole-shebang/index.js",
+  "main": "beaglebone/index.js",
   "scripts": {
-    "start": "node the-whole-shebang/index.js",
+    "start": "node beaglebone/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Simon M. Werner",
