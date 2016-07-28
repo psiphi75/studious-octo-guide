@@ -34,10 +34,17 @@
 var PMTK = require('pmtk');
 
 module.exports = function ConfigGPS(serialport, baudrate, updateRate, allDoneCallback) {
+
+    console.log('************************************************************');
+    console.log('*                                                          *');
+    console.log('* Configuring GPS on ' + serialport + ' to ' + baudrate + ' at ' + updateRate + ' Hz          *');
+    console.log('*                                                          *');
+    console.log('************************************************************');
+
     var pmtk = new PMTK(serialport, 'detect', stdCallbackFactory('Initialise and autodetect speed', setBaudrate));
 
     function setBaudrate() {
-        console.log('\nSetting baudrate (' + baudrate + '):');
+        console.log('\nSetting baudrate (' + baudrate + ')...');
         pmtk.commands.setBaudrate(baudrate, function (err) {
             if (err === 'timeout') {
                 console.log('Change baudrate successful: ', baudrate);
@@ -62,12 +69,14 @@ module.exports = function ConfigGPS(serialport, baudrate, updateRate, allDoneCal
     }
 
     function stdCallbackFactory(name, nextFn) {
-        console.log('\nStarting ' + name + ':');
+        console.log('\nStarting ' + name + '.');
         return function (err, result) {
             if (err) {
                 console.log('ERROR: ', name + ': ', err);
+            } else if (result === undefined) {
+                    console.log('  --> success');
             } else {
-                console.log(name + ' successful: ', result);
+                console.log('  --> success: ', result);
             }
             nextFn();
         };

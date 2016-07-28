@@ -30,12 +30,31 @@ function GPSSync(cfg) {
 
     this.gps1 = new GPS(cfg.gps['1'].serialport, cfg.gps.baudrate);
     this.gps2 = new GPS(cfg.gps['2'].serialport, cfg.gps.baudrate);
-    var interval = (1000 / cfg.gps.updateRate) + 50;  // Convert to milliseconds
+    this.interval = (1000 / cfg.gps.updateRate) + 50;  // Convert to milliseconds
 
+    this.capture();
+}
+
+GPSSync.prototype.getPosition = function() {
+    var pos = this.position;
+    this.position = null;
+    return pos;
+};
+
+GPSSync.prototype.capture = function() {
+
+    var self = this;
+    var gpsQualityType; // Stores the GPS Quality type.
+
+    // Do the capture
     async.parallel({
         '1': funFactory(this.gps1),
         '2': funFactory(this.gps2)
-    }, handleGPSCapture);
+    }, function handleGPSCapture(err, results) {
+        self.position = bestGPS(results);
+        console.log('GPSS: "' + gpsQualityType + '"', err, JSON.stringify(results));
+        setTimeout(self.capture.bind(self), 0);
+    });
 
     function funFactory(gpsDevice) {
         return function (callback) {
@@ -57,40 +76,33 @@ function GPSSync(cfg) {
                 // We get here and GPS capture has failed
                 callback(null, null);
                 gpsDevice.removeListener('position', handleEvent);
-            }, interval);
+            }, self.interval);
         };
     }
 
-    var gpsQualityType;
-    var self = this;
-    function handleGPSCapture(err, results) {
-        self.position = bestGPS(results);
-        console.log('GPSS', gpsQualityType, err, results);
-    }
-
     function bestGPS(gpsObj) {
-        gpsQualityType = 'one is null';
+        gpsQualityType = 'either is null';
         var g1 = gpsObj['1'];
         var g2 = gpsObj['2'];
         if (g1 === null) return g2;
         if (g2 === null) return g1;
 
-        // Test if the GPS value has changed
-        gpsQualityType = 'one has not changed';
-        if (g1.sameCounter < g2.sameCounter) return g1;
-        if (g2.sameCounter < g1.sameCounter) return g2;
-
         // Test gps quality
-        gpsQualityType = 'one has better quality';
+        gpsQualityType = 'either has better quality';
         var q1 = qualityScale(g1);
         var q2 = qualityScale(g2);
         if (q1 < q2) return q1;
         if (q2 < q1) return q2;
 
         // Test HDOP
-        gpsQualityType = 'one has better hdop';
+        gpsQualityType = 'either has better hdop';
         if (q1.hdop < q2.hdop) return q1;
         if (q2.hdop < q1.hdop) return q2;
+
+        // Test if the GPS value has changed
+        gpsQualityType = 'either has not changed';
+        if (g1.sameCounter < g2.sameCounter) return g1;
+        if (g2.sameCounter < g1.sameCounter) return g2;
 
         // GPS Signal must be good - use average
         gpsQualityType = 'Both are good';
@@ -112,11 +124,6 @@ function GPSSync(cfg) {
         }
     }
 
-
-}
-
-GPSSync.prototype.getPosition = function() {
-    return null;
 };
 
 

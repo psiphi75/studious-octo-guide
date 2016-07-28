@@ -38,5 +38,11 @@ var configGPS = require('./ConfigGPS');
 
 
 configGPS(cfg.gps['1'].serialport, cfg.gps.baudrate, cfg.gps.updateRate, function() {
-    configGPS(cfg.gps['2'].serialport, cfg.gps.baudrate, cfg.gps.updateRate, function () {});
+    configGPS(cfg.gps['2'].serialport, cfg.gps.baudrate, cfg.gps.updateRate, function () {
+        console.log('************************************************************');
+        console.log('*                                                          *');
+        console.log('*               DONE: All GPS Initialisation               *');
+        console.log('*                                                          *');
+        console.log('************************************************************');
+    });
 });

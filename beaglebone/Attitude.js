@@ -145,11 +145,13 @@ Attitude.prototype.getAttitude = function () {
     // Add heading, pitch and roll
     //
     var hpr = this.madgwick.getEulerAngles();
-    hpr.heading = util.wrapDegrees(util.toDegrees(hpr.heading) + this.declinationDegrees);
+
+    // NOTE: Here we change the heading to a negative value, this goes against normal mathematical convention.
+    //       But this aligns geospatial headings, (e.g. a typical compass).
+    hpr.heading = -util.wrapDegrees(util.toDegrees(hpr.heading) - this.declinationDegrees);
     hpr.pitch = util.toDegrees(hpr.pitch);
     hpr.roll = util.toDegrees(hpr.roll);
 
-// console.log('calcs', this.calcs)
     return hpr;
 };
 
