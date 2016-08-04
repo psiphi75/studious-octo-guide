@@ -26,11 +26,15 @@
 var util = require('./util');
 
 var fn = {
+    /**
+     * Calculate the apparent wind, relative to the boat.  Where the bow of the boat is the front/forward.
+     * @param  {number} windSpeed   The speed of the wind (in any units)
+     * @param  {number} windHeading The way the wind is going, in degrees, relative to north. // http://www.windspeed.co.uk/ws/index.php?option=faq&task=viewfaq&Itemid=5&artid=17
+     * @param  {number} boatSpeed   The speed of the boat (in same units as windSpeed)
+     * @param  {number} boatHeading The heading of the boat, in degrees, relative to north
+     * @return {object}             {heading, headingToBoat, speed}
+     */
     calcApparentWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
-        // https://en.wikipedia.org/wiki/Apparent_wind
-
-        // Note: wind "direction" from windvane is where the wind is coming from.  We change this to the other direction
-        windHeading = util.wrapDegrees(180 + windHeading);
 
         var trueWindVec = util.createVector(windSpeed, util.toRadians(windHeading));
         var boatVec = util.createVector(boatSpeed, util.toRadians(boatHeading));
@@ -39,13 +43,13 @@ var fn = {
         var x = boatVec.x + trueWindVec.x;
         var y = boatVec.y + trueWindVec.y;
 
-        var awHeading = util.wrapDegrees(90 - util.toDegrees(Math.atan2(y, x)));
-        var awHeadingBoat = util.wrapDegrees(boatHeading - awHeading);
+        var awHeadingToNorth = util.wrapDegrees(90 - util.toDegrees(Math.atan2(y, x)));
+        var awHeadingBoat = util.wrapDegrees(boatHeading - awHeadingToNorth + 180);
         var awSpeed = Math.sqrt(x * x + y * y);
 
         return {
-            heading: awHeading,
-            headingToBoat: awHeadingBoat,
+            headingToNorth: awHeadingToNorth,
+            heading: awHeadingBoat,
             speed: awSpeed
         };
     },

@@ -64,10 +64,10 @@ WindvaneComms.prototype.getStatus = function() {
     if (!this.status) return undefined;
 
     var status = this.status;
-    this.status = undefined;
+    // this.status = undefined;
     return {
-        headingTrue: status.compassHeading,
-        speed: status.windSpeed
+        heading: status.heading,
+        speed: status.speed
     };
 };
 

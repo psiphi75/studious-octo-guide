@@ -68,7 +68,11 @@ function GPS(serialPort, baudRate) {
     //
     port.on('data', function(data) {
         console.log('DEBUG GPS: ', serialPort, new Date().getTime(), ': (same=' + lastGPS.sameCounter + ', !valid=' + lastGPS.notValid + ')', data);
-        gps.update(data);
+        try {
+            gps.update(data);
+        } catch (err) {
+            console.error('GPS: There was an error: ', err);
+        }
     });
 
     //
@@ -116,6 +120,7 @@ function GPS(serialPort, baudRate) {
             sameCounter: sameCounter
         };
         self.emit('position', self.positionData);
+        console.log('DEBUG GPS: emitted "position": ', JSON.stringify(self.positionData));
 
         // FIXME: Remove this code - it's for debugging
         if (self.positionData.latitude === lastGPS.latitude && self.positionData.longitude === lastGPS.longitude) {

@@ -30,12 +30,8 @@ var util = {
         if (typeof max === 'undefined') max = 1;
         return Math.random() * (max - min) + min;
     },
-    toRadians: function(deg) {
-        return deg * Math.PI / 180;
-    },
-    toDegrees: function(rad) {
-        return (rad / Math.PI * 180);
-    },
+    toRadians: function(deg) { return deg * Math.PI / 180; },
+    toDegrees: function(rad) { return rad / Math.PI * 180; },
     defaultFor: function (arg, val) {
         return typeof arg !== 'undefined' ? arg : val;
     },
@@ -57,74 +53,30 @@ var util = {
     isNumeric: function (n) {
         return !isNaN(parseFloat(n)) && isFinite(n);
     },
-    isValidGPS: function(gps) {
-        if (typeof p !== 'object') return false;
-        if (!util.isNumeric(gps.latitude)) return false;
-        if (!util.isNumeric(gps.longitude)) return false;
-        if (gps.latitude === 0 && gps.longitude === 0) return false;
-        return true;
-    },
-    /**
-     * Calculate the speed in m/s and heading.  Thanks to: http://www.movable-type.co.uk/scripts/latlong.html
-     * @param  {number} latitude  [description]
-     * @param  {number} longitude [description]
-     * @param  {number} latitude  [description]
-     * @param  {number} longitude [description]
-     * @param  {number} dt_ms     The change in time between the two readings (milliseconds)
-     * @return {number}           velocity in m/s
-     */
-    getVelocityFromΔLatLong: function(lat1, long1, lat2, long2, dt_ms) {
-
-        var Δλ = util.toRadians(long2 - long1);
-        var φ1 = util.toRadians(lat1);
-        var φ2 = util.toRadians(lat2);
-        var sinφ1 = Math.sin(φ1);
-        var sinφ2 = Math.sin(φ2);
-        var cosφ1 = Math.cos(φ1);
-        var cosφ2 = Math.cos(φ2);
-        var cosΔλ = Math.cos(Δλ);
-        var A = cosφ2 * cosΔλ;
-
-        // Distance - an approximation, but works for small distances
-        var x = Δλ * Math.cos((φ1 + φ2) / 2);
-        var y = (φ2 - φ1);
-        var distance = Math.sqrt(x * x + y * y) * util.RADIUS_EARTH;
-        var speed = distance / (dt_ms / 1000);
-
-        // Bearing
-        var yy = Math.sin(Δλ) * cosφ2;
-        var xx = cosφ1 * sinφ2 - sinφ1 * A;
-        var heading = util.toDegrees(Math.atan2(yy, xx));
-
-        return {
-            speed: speed,
-            heading: heading
-        };
-    },
     /**
      * Calculate the speed in m/s and heading.  Thanks to: http://www.movable-type.co.uk/scripts/latlong.html
      * @param  {number} lat        The old latitude
      * @param  {number} long       The old longitude
      * @param  {number} speed      The speed in m/s
      * @param  {number} heading    The heading in degrees
-     * @param  {number} Δt_ms      The change in time between the two readings (milliseconds)
+     * @param  {number} dt_ms      The change in time between the two readings (milliseconds)
      * @return {object}            {latitude, longitude}
      */
-    getNextLatLongFromVelocity: function(lat1, long1, speed, heading, Δt_ms) {
-        var φ1 = util.toRadians(lat1);
-        var λ1 = util.toRadians(long1);
-        var distance = speed * Δt_ms / 1000;
+    getNextLatLongFromVelocity: function(lat1, long1, speed, heading, dt_ms) {
+        var sigma1 = util.toRadians(lat1);
+        var lambda1 = util.toRadians(long1);
+        var distance = speed * dt_ms / 1000;
         var headingRad = util.toRadians(heading);
         var dRe = distance / util.RADIUS_EARTH;
-        var φ2 = Math.asin(Math.sin(φ1) * Math.cos(dRe) + Math.cos(φ1) * Math.sin(dRe) * Math.cos(headingRad));
-        var λ2 = λ1 + Math.atan2(
-                            Math.sin(headingRad) * Math.sin(dRe) * Math.cos(φ1),
-                            Math.cos(dRe) - Math.sin(φ1) * Math.sin(φ2)
+        var sigma2 = Math.asin(Math.sin(sigma1) * Math.cos(dRe) + Math.cos(sigma1) * Math.sin(dRe) * Math.cos(headingRad));
+        var lambda2 = lambda1 + Math.atan2(
+                            Math.sin(headingRad) * Math.sin(dRe) * Math.cos(sigma1),
+                            Math.cos(dRe) - Math.sin(sigma1) * Math.sin(sigma2)
                         );
 
         return {
-            latitude: util.toDegrees(φ2),
-            longitude: util.toDegrees(λ2)
+            latitude: util.toDegrees(sigma2),
+            longitude: util.toDegrees(lambda2)
         };
     },
     /**
@@ -236,7 +188,52 @@ var util = {
         } else {
             return v;
         }
-    }
+    },
+
+    /**
+     * Calculate the speed in m/s and heading.  Thanks to: http://www.movable-type.co.uk/scripts/latlong.html
+     * @param  {number} latitude  [description]
+     * @param  {number} longitude [description]
+     * @param  {number} latitude  [description]
+     * @param  {number} longitude [description]
+     * @param  {number} dt_ms     The change in time between the two readings (milliseconds)
+     * @return {number}           velocity in m/s
+     */
+    getVelocityFromDeltaLatLong: function(lat1, long1, lat2, long2, dt_ms) {
+
+        var dLambda = util.toRadians(long2 - long1);
+        var Sigma1 = util.toRadians(lat1);
+        var Sigma2 = util.toRadians(lat2);
+        var sinSigma1 = Math.sin(Sigma1);
+        var sinSigma2 = Math.sin(Sigma2);
+        var cosSigma1 = Math.cos(Sigma1);
+        var cosSigma2 = Math.cos(Sigma2);
+        var cosdLambda = Math.cos(dLambda);
+        var A = cosSigma2 * cosdLambda;
+
+        // Distance - an approximation, but works for small distances
+        var x = dLambda * Math.cos((Sigma1 + Sigma2) / 2);
+        var y = (Sigma2 - Sigma1);
+        var distance = Math.sqrt(x * x + y * y) * util.RADIUS_EARTH;
+        var speed = distance / (dt_ms / 1000);
+
+        // Bearing
+        var yy = Math.sin(dLambda) * cosSigma2;
+        var xx = cosSigma1 * sinSigma2 - sinSigma1 * A;
+        var heading = util.toDegrees(Math.atan2(yy, xx));
+
+        return {
+            speed: speed,
+            heading: heading
+        };
+    },
+    isValidGPS: function(gps) {
+            if (typeof p !== 'object') return false;
+            if (!util.isNumeric(gps.latitude)) return false;
+            if (!util.isNumeric(gps.longitude)) return false;
+            if (gps.latitude === 0 && gps.longitude === 0) return false;
+            return true;
+    },
 
 };
 

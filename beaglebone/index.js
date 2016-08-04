@@ -94,6 +94,7 @@ function collectData() {
     var wind;
     if (windvane) {
         wind = windvane.getStatus();
+        console.log('WIND:', wind);
     } else {
         wind = {
             speed: 0,
@@ -104,7 +105,7 @@ function collectData() {
     var boatVelocity = velocity.calcFromPosition(gpsPosition);
 
     var apparentWind;
-    if (boatVelocity !== null) {
+    if (wind && boatVelocity !== null) {
         apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
     }
 

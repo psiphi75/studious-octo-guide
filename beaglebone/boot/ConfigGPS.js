@@ -41,23 +41,23 @@ module.exports = function ConfigGPS(serialport, baudrate, updateRate, allDoneCal
     console.log('*                                                          *');
     console.log('************************************************************');
 
-    var pmtk = new PMTK(serialport, 'detect', stdCallbackFactory('Initialise and autodetect speed', setBaudrate));
+    var pmtk = new PMTK(serialport, 9600, stdCallbackFactory('Initialise and autodetect speed', setNmeaOutput));
 
-    function setBaudrate() {
-        console.log('\nSetting baudrate (' + baudrate + ')...');
-        pmtk.commands.setBaudrate(baudrate, function (err) {
-            if (err === 'timeout') {
-                console.log('Change baudrate successful: ', baudrate);
-                newPMTK();
-            } else if (err) {
-                console.log('ERROR setting baudrate: ', err);
-            }
-        });
-    }
+    // function setBaudrate() {
+    //     console.log('\nSetting baudrate (' + baudrate + ')...');
+    //     pmtk.commands.setBaudrate(baudrate, function (err) {
+    //         if (err === 'timeout') {
+    //             console.log('Change baudrate successful: ', baudrate);
+    //             newPMTK();
+    //         } else if (err) {
+    //             console.log('ERROR setting baudrate: ', err);
+    //         }
+    //     });
+    // }
 
-    function newPMTK() {
-        pmtk = new PMTK(serialport, baudrate, stdCallbackFactory('Initialise fresh PMTK @' + baudrate + ' baud', setNmeaOutput));
-    }
+    // function newPMTK() {
+    //     pmtk = new PMTK(serialport, baudrate, stdCallbackFactory('Initialise fresh PMTK @' + baudrate + ' baud', setNmeaOutput));
+    // }
 
     function setNmeaOutput() {
         pmtk.commands.setNmeaOutput(['GGA', 'RMC'], stdCallbackFactory('Change NMEA output', setUpdateRate));

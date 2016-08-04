@@ -36,14 +36,19 @@ function Velocity() {
 
 Velocity.prototype.calcFromPosition = function(position) {
 
-    if (!util.isValidGPS(position)) return null;
+    var zero = {
+        speed: 0,
+        heading: 0
+    };
+
+    if (!util.isValidGPS(position)) return zero;
 
     if (this.lastPosition === null) {
         this.lastPosition = util.clone(position);
-        return null;
+        return zero;
     }
 
-    var velocity = util.getVelocityFromΔLatLong(position.latitude, position.longitude, this.lastPosition.latitude, this.lastPosition.longitude);
+    var velocity = util.getVelocityFromDeltaLatLong(position.latitude, position.longitude, this.lastPosition.latitude, this.lastPosition.longitude);
     this.lastPosition = util.clone(position);
     return velocity;
 

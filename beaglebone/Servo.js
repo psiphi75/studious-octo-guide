@@ -35,7 +35,7 @@ function Servo(name, obs, cfg, callback) {
     if (typeof obs !== 'object' || typeof obs.pinMode !== 'function') {
         callback(null, 'Servo: Error: Expecting octalbonescript to be defined');
     }
-
+    this.name = name;
     this.obs = obs;
     this.pin = cfg.pin;
     this.scalar = {
@@ -70,10 +70,15 @@ Servo.prototype.set = function (value, callback) {
 
     if (!this.up) {
         callback(null, 'This servo is currently not ready: ' + this.pin);
+        return;
     }
 
     if (!callback) {
         callback = defaultCB;
+    }
+
+    if (this.name === 'Rudder') {
+        console.log('\n\n\n\nServo ' + this.name, value, scaledValue, adjustPWM(scaledValue))
     }
 
     this.obs.analogWrite(this.pin, adjustPWM(scaledValue), 60, callback);

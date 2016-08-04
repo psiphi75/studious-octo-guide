@@ -4,8 +4,8 @@
      */
     "webRemoteControl": {
         "url": "localhost",   // The actual URL of the proxy
-        "channel": "23",      // The channel we operate on
-        "updateInterval": 100,    // How often we send a status update over the network (milliseconds)
+        "channel": "Honestly Round Down Quark",  // The channel we operate on
+        "updateInterval": 50,    // How often we send a status update over the network (milliseconds)
         "useNetworkDiscovery": true     // Default to network discovery
     },
 
@@ -13,8 +13,8 @@
      * Define our location - required for figuring out true north.
      */
     "location": {
-        "latitude": null,
-        "longitude": null
+        "latitude": -36.4,
+        "longitude": 174.2
     },
 
     /*
@@ -24,17 +24,17 @@
         "sail": {
             "pin": "P8_13",
             "scalar": {
-                "min": 0.07,
+                "min": 0.03,
                 "center": 0.09,
-                "max": 0.11
+                "max": 0.20
             }
         },
         "rudder": {
             "pin": "P8_19",
             "scalar": {
-                "min": 0.07,
-                "center": 0.09,
-                "max": 0.11
+                "min": -0.12,
+                "center": 0.18,
+                "max": 0.5
             }
         }
     },
@@ -53,8 +53,8 @@
         "2": {
             "serialport": "/dev/ttyO4",
         },
-        "baudrate": 115200,
-        "updateRate": 5             // Update rate in Hz
+        "baudrate": 9600,
+        "updateRate": 4             // Update rate in Hz
     },
 
     "mpu9250": {
