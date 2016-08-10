@@ -59,6 +59,8 @@ function GPS(serialPort, baudRate) {
             lastGPS.notValid += 1;
             return;
         }
+        lastGPS.notValid = 0;
+
         if (data.type === 'RMC') handleSpeedData(data);
         if (data.type === 'GGA') handlePositionData(data);
     });

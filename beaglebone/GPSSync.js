@@ -24,13 +24,20 @@
 'use strict';
 
 var GPS = require('./GPS');
-var async = require('async');
 
 function GPSSync(cfg) {
 
-    this.gps1 = new GPS(cfg.gps['1'].serialport, cfg.gps.baudrate);
-    this.gps2 = new GPS(cfg.gps['2'].serialport, cfg.gps.baudrate);
-    this.interval = (1000 / cfg.gps.updateRate) + 50;  // Convert to milliseconds
+    this.gps = {
+        '1': {
+            gps: new GPS(cfg.gps['1'].serialport, cfg.gps.baudrate),
+            tmpPostion: null,
+        },
+        '2': {
+            gps: new GPS(cfg.gps['2'].serialport, cfg.gps.baudrate),
+            tmpPostion: null,
+        }
+    };
+    this.interval = (1000 / cfg.gps.updateRate) - 50;  // Convert to milliseconds
 
     this.capture();
 }
@@ -45,52 +52,57 @@ GPSSync.prototype.capture = function() {
 
     var self = this;
     var gpsQualityType; // Stores the GPS Quality type.
+    var numGPSevents = 0;
 
-    // Do the capture
-    async.parallel({
-        '1': funFactory(this.gps1),
-        '2': funFactory(this.gps2)
-    }, function handleGPSCapture(err, results) {
-        self.position = bestGPS(results);
-        console.log('GPSS: "' + gpsQualityType + '"', err, JSON.stringify(results));
-        setTimeout(self.capture.bind(self), 0);
-    });
+    setEventHandler('1');
+    setEventHandler('2');
 
-    function funFactory(gpsDevice) {
-        return function (callback) {
-
-            //
-            // Listen to the GPS device
-            //
-            gpsDevice.once('position', handleEvent);
-            function handleEvent(position) {
-                // We get here and GPS capture is success
-                callback(null, position);
-                clearTimeout(hST);
-            }
-
-            //
-            // Create a timeout for waiting for GPS
-            //
-            var hST = setTimeout(function() {
-                // We get here and GPS capture has failed
-                callback(null, null);
-                gpsDevice.removeListener('position', handleEvent);
-            }, self.interval);
-        };
+    function setEventHandler(gpsNum) {
+        self.gps[gpsNum].gps.on('position', function(position) {
+            handleEvent('position', gpsNum, position);
+        });
     }
 
-    function bestGPS(gpsObj) {
+    function handleEvent(evType, gpsNum, position) {
+        if (gpsNum) {
+            self.gps[gpsNum].tmpPosition = position;
+            numGPSevents += 1;
+        }
+
+        if (evType === 'timeout' || numGPSevents === 2) {
+            console.log('GPSS: evType', evType);
+            wrapUp();
+        } else {
+            // We have our first event.  Hence trigger the timeout for the next event.
+            setTimeout(timeoutFunction, self.interval);
+        }
+    }
+
+    function timeoutFunction() {
+        handleEvent('timeout');
+    }
+
+    function wrapUp() {
+
+        self.position = bestPostion(self.gps['1'].tmpPosition, self.gps['2'].tmpPosition);
+        console.log('GPSS: "' + gpsQualityType + '"', JSON.stringify([self.gps['1'].tmpPosition, self.gps['2'].tmpPosition]));
+        self.gps['1'].tmpPosition = null;
+        self.gps['2'].tmpPosition = null;
+
+        clearTimeout(timeoutFunction);
+        numGPSevents = 0;
+
+    }
+
+    function bestPostion(pos1, pos2) {
         gpsQualityType = 'either is null';
-        var g1 = gpsObj['1'];
-        var g2 = gpsObj['2'];
-        if (g1 === null) return g2;
-        if (g2 === null) return g1;
+        if (pos1 === null) return pos2;
+        if (pos2 === null) return pos1;
 
         // Test gps quality
         gpsQualityType = 'either has better quality';
-        var q1 = qualityScale(g1);
-        var q2 = qualityScale(g2);
+        var q1 = qualityScale(pos1);
+        var q2 = qualityScale(pos2);
         if (q1 < q2) return q1;
         if (q2 < q1) return q2;
 
@@ -101,16 +113,17 @@ GPSSync.prototype.capture = function() {
 
         // Test if the GPS value has changed
         gpsQualityType = 'either has not changed';
-        if (g1.sameCounter < g2.sameCounter) return g1;
-        if (g2.sameCounter < g1.sameCounter) return g2;
+        if (pos1.sameCounter < pos2.sameCounter) return pos1;
+        if (pos2.sameCounter < pos1.sameCounter) return pos2;
 
         // GPS Signal must be good - use average
         gpsQualityType = 'Both are good';
-        g1.latitude = 0.5 * (g1.latitude + g2.latitude);
-        g1.latitude = 0.5 * (g1.longitude + g2.longitude);
-        return g1;
+        pos1.latitude = 0.5 * (pos1.latitude + pos2.latitude);
+        pos1.longitude = 0.5 * (pos1.longitude + pos2.longitude);
+        return pos1;
 
         function qualityScale(g) {
+            if (!g) return 99;
             switch (g.quality) {
                 case 'pps-fix':     // valid PPS (Precise Positioning Service) fix
                     return 1;

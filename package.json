@@ -10,7 +10,6 @@
   "private": true,
   "dependencies": {
     "ahrs": "^1.0.1",
-    "async": "^2.0.1",
     "config": "^1.21.0",
     "geomagnetism": "^0.0.2",
     "gps": "^0.2.0",

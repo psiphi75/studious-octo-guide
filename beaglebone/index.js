@@ -195,7 +195,9 @@ function initToyToProxyCommunication() {
     // Listens to commands from the controller
     toy.on('command', handleCommand);
 
-    toy.on('error', logger.error);
+    toy.on('error', function(err) {
+        logger.error(err);
+    });
 }
 
 function handleCommand(command) {
@@ -203,12 +205,17 @@ function handleCommand(command) {
     switch (command.action) {
         case 'note':
             logger.info('NOTE:' + JSON.stringify(command.note));
+            if (command.note === 'Shutdown') {
+                require('child_process').exec('/sbin/shutdown --poweroff now', function (msg) {
+                    logger.info('Shutting down: ' + msg);
+                });
+            }
             break;
         case 'move':
             actionMove(command);
             break;
         default:
-            logger.error('ERROR - invalid command', JSON.stringify(command));
+            logger.error('ERROR - invalid command: ' + JSON.stringify(command));
     }
 
 }

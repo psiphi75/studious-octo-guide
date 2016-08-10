@@ -61,27 +61,22 @@ function Servo(name, obs, cfg, callback) {
 /**
  * Set the value of a servo.
  * @param {number}   value    The value to set the servo to.
- * @param {Function} callback The callback for when the value is set.
  */
-Servo.prototype.set = function (value, callback) {
+Servo.prototype.set = function (value) {
 
     this.value = value;
     var scaledValue = this.scale(value);
 
     if (!this.up) {
-        callback(null, 'This servo is currently not ready: ' + this.pin);
+        console.error('Servo.set(): This servo is currently not ready: ' + this.pin);
         return;
-    }
-
-    if (!callback) {
-        callback = defaultCB;
     }
 
     if (this.name === 'Rudder') {
         console.log('\n\n\n\nServo ' + this.name, value, scaledValue, adjustPWM(scaledValue))
     }
 
-    this.obs.analogWrite(this.pin, adjustPWM(scaledValue), 60, callback);
+    this.obs.analogWrite(this.pin, adjustPWM(scaledValue), 60, defaultCB);
 
     //
     // This is the default adjust function for the BeagleBone for PWM.
@@ -141,7 +136,7 @@ Servo.prototype.scale = function (value) {
 };
 
 function defaultCB(err) {
-    if (err) console.error('There was an error with a servo:', err);
+    if (err) console.error('Servo: There was an error with a servo:', err);
 }
 
 module.exports = Servo;

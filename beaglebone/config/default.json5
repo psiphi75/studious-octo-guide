@@ -4,7 +4,7 @@
      */
     "webRemoteControl": {
         "url": "localhost",   // The actual URL of the proxy
-        "channel": "Honestly Round Down Quark",  // The channel we operate on
+        "channel": "Perfectly Yummy Antitau",  // The channel we operate on
         "updateInterval": 50,    // How often we send a status update over the network (milliseconds)
         "useNetworkDiscovery": true     // Default to network discovery
     },
@@ -24,17 +24,17 @@
         "sail": {
             "pin": "P8_13",
             "scalar": {
-                "min": 0.03,
-                "center": 0.09,
-                "max": 0.20
+                "min": -0.10,
+                "center": 0.19,
+                "max": 0.54
             }
         },
         "rudder": {
             "pin": "P8_19",
             "scalar": {
-                "min": -0.12,
-                "center": 0.18,
-                "max": 0.5
+                "min": 0.75,
+                "center": 0.27,
+                "max": -0.15
             }
         }
     },
@@ -61,8 +61,8 @@
         /*
         * How often we check the sensor samples (milliseconds).
         */
-        "sampleInterval": 5,
-        "sampleIntervalMagnetometer": 20,
+        "sampleInterval": 10,
+        "sampleIntervalMagnetometer": 10,
 
         "options": {
             device: "/dev/i2c-2",
@@ -92,51 +92,39 @@
             ACCEL_FS: 0,
 
             // These values were generated using calibrate_mag.js - you will want to create your own.
-            magCalibration: {
-                    min: {
-                        x: -104.9921875,
-                        y: -48.52734375,
-                        z: -14.828125
-                    },
-                    max: {
-                        x: 66.0625,
-                        y: 121.91015625,
-                        z: 164.25
-                    },
-                    offset: {
-                        x: -19.46484375,
-                        y: 36.69140625,
-                        z: 74.7109375
-                    },
-                    scale: {
-                        x: 0.657181,
-                        y: 0.654810,
-                        z: 0.688007
-                    }
-                },
+magCalibration: {
+                min: { x: -107.3515625, y: -55.62890625, z: 11.40625 },
+  max: { x: 40.109375, y: 97.0546875, z: 159.6875 },
+  offset: { x: -33.62109375, y: 20.712890625, z: 85.546875 },
+  scale: 
+   { x: 1.5204900662251655,
+     y: 1.4684805689871312,
+     z: 1.5120785036880928 }
+},
+            
 
-            // These values were generated using calibrate_gyro.js - you will want to create your own.
+
+	    // These values were generated using calibrate_gyro.js - you will want to create your own.
             // NOTE: These are temperature dependent.
             gyroBiasOffset: {
-                x: -0.478961832061068,
-                y: -0.14835114503816793,
-                z: 0.4523969465648852
+                x: 0.509328244274809,
+                y: 2.191832061068703,
+                z: -0.18914503816793896
             },
 
             // These values were generated using calibrate_accel.js - you will want to create your own.
-            accelCalibration: { offset: {
-                                   x: 0.011176961263020833,
-                                   y: 0.003827718098958333,
-                                   z: 0.03787556966145833
-                               },
-                               scale: {
-                                   x: [-0.99033203125, 1.0129679361979167],
-                                   y: [-0.9979768880208333, 1.0061800130208334],
-                                   z: [-0.9573575846354166, 1.07052001953125]
-                               }
+            accelCalibration: {
+                offset: {
+                    x: 0.0036100260416666668,
+                    y: 0.005501505533854167,
+                    z: 0.08169657389322917
+                },
+                scale: {
+                    x: [-0.98826171875, 1.013876953125],
+                    y: [-0.9948478190104166, 1.00884521484375],
+                    z: [-0.9558658854166666, 1.07543701171875]
+                }
             }
-
-
         }
     }
 }

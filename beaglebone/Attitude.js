@@ -32,6 +32,7 @@ function Attitude(cfg) {
 
     this.sensorSampleIntervalSeconds = cfg.mpu9250.sampleInterval / 1000;
     this.magSampleInterval = cfg.mpu9250.sampleIntervalMagnetometer;
+    this.lastMagReadTime = 0;
     this.attitude = {};
 
     //
@@ -86,17 +87,17 @@ Attitude.prototype.stopCapture = function() {
 */
 Attitude.prototype.capture = function() {
 
-    // Don't capture the magnetometer every sample, only once every magSamplePeriod.
+    // Don't capture the magnetometer every sample, only once every magSampleInterval.
     var sensorDataArray;
     var startTime = new Date().getTime();
-    if (startTime - this.lastMagReadTime >= this.magSamplePeriod) {
-        // DO read magnetometer
-        this.lastMagReadTime = startTime;
+    // if (startTime - this.lastMagReadTime >= this.magSampleInterval) {
+    //     // DO read magnetometer
+    //     this.lastMagReadTime = startTime;
         sensorDataArray = this.imu.getMotion9();
-    } else {
-        // Don't read magnetometer
-        sensorDataArray = this.imu.getMotion6();
-    }
+    // } else {
+    //     // Don't read magnetometer
+    //     sensorDataArray = this.imu.getMotion6();
+    // }
     var endTime = new Date().getTime();
     var sensorData = {
         timestamp: endTime,
@@ -165,8 +166,8 @@ Attitude.prototype.getAttitude = function () {
 function transformAccelGyro(s) {
     return {
         x: -s.x,
-        y: s.z,
-        z: s.y
+        y: -s.z,
+        z: -s.y
     };
 }
 
@@ -178,8 +179,8 @@ function transformAccelGyro(s) {
 function transformMag(s) {
     return {
         x: -s.y,
-        y: -s.z,
-        z: s.x
+        y: s.z,
+        z: -s.x
     };
 }
 
