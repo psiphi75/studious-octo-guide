@@ -41,14 +41,18 @@ Velocity.prototype.calcFromPosition = function(position) {
         heading: 0
     };
 
-    if (!util.isValidGPS(position)) return zero;
+    if (!util.isValidGPS(position)) {
+        console.log('Velocity: invalid position', position);
+        return zero;
+    }
 
     if (this.lastPosition === null) {
         this.lastPosition = util.clone(position);
         return zero;
     }
 
-    var velocity = util.getVelocityFromDeltaLatLong(position.latitude, position.longitude, this.lastPosition.latitude, this.lastPosition.longitude);
+    var dt_ms = position.time - this.lastPosition.time;
+    var velocity = util.getVelocityFromDeltaLatLong(position.latitude, position.longitude, this.lastPosition.latitude, this.lastPosition.longitude, dt_ms);
     this.lastPosition = util.clone(position);
     return velocity;
 

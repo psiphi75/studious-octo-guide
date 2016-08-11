@@ -95,46 +95,50 @@ GPSSync.prototype.capture = function() {
     }
 
     function bestPostion(pos1, pos2) {
-        gpsQualityType = 'either is null';
-        if (pos1 === null) return pos2;
-        if (pos2 === null) return pos1;
+        gpsQualityType = 'FIXME: Overriden for u-blox only';
+        return pos2;
 
-        // Test gps quality
-        gpsQualityType = 'either has better quality';
-        var q1 = qualityScale(pos1);
-        var q2 = qualityScale(pos2);
-        if (q1 < q2) return q1;
-        if (q2 < q1) return q2;
 
-        // Test HDOP
-        gpsQualityType = 'either has better hdop';
-        if (q1.hdop < q2.hdop) return q1;
-        if (q2.hdop < q1.hdop) return q2;
-
-        // Test if the GPS value has changed
-        gpsQualityType = 'either has not changed';
-        if (pos1.sameCounter < pos2.sameCounter) return pos1;
-        if (pos2.sameCounter < pos1.sameCounter) return pos2;
-
-        // GPS Signal must be good - use average
-        gpsQualityType = 'Both are good';
-        pos1.latitude = 0.5 * (pos1.latitude + pos2.latitude);
-        pos1.longitude = 0.5 * (pos1.longitude + pos2.longitude);
-        return pos1;
-
-        function qualityScale(g) {
-            if (!g) return 99;
-            switch (g.quality) {
-                case 'pps-fix':     // valid PPS (Precise Positioning Service) fix
-                    return 1;
-                case 'fix':         // valid SPS (Standard Positioning Service) fix
-                    return 2;
-                case 'dgps-fix':    // valid DGPS (Differential GPS) fix
-                    return 3;
-                default:
-                    return 9;
-            }
-        }
+        // gpsQualityType = 'either is null';
+        // if (pos1 === null) return pos2;
+        // if (pos2 === null) return pos1;
+        //
+        // // Test gps quality
+        // gpsQualityType = 'either has better quality';
+        // var q1 = qualityScale(pos1);
+        // var q2 = qualityScale(pos2);
+        // if (q1 < q2) return q1;
+        // if (q2 < q1) return q2;
+        //
+        // // Test HDOP
+        // gpsQualityType = 'either has better hdop';
+        // if (q1.hdop < q2.hdop) return q1;
+        // if (q2.hdop < q1.hdop) return q2;
+        //
+        // // Test if the GPS value has changed
+        // gpsQualityType = 'either has not changed';
+        // if (pos1.sameCounter < pos2.sameCounter) return pos1;
+        // if (pos2.sameCounter < pos1.sameCounter) return pos2;
+        //
+        // // GPS Signal must be good - use average
+        // gpsQualityType = 'Both are good';
+        // pos1.latitude = 0.5 * (pos1.latitude + pos2.latitude);
+        // pos1.longitude = 0.5 * (pos1.longitude + pos2.longitude);
+        // return pos1;
+        //
+        // function qualityScale(g) {
+        //     if (!g) return 99;
+        //     switch (g.quality) {
+        //         case 'pps-fix':     // valid PPS (Precise Positioning Service) fix
+        //             return 1;
+        //         case 'fix':         // valid SPS (Standard Positioning Service) fix
+        //             return 2;
+        //         case 'dgps-fix':    // valid DGPS (Differential GPS) fix
+        //             return 3;
+        //         default:
+        //             return 9;
+        //     }
+        // }
     }
 
 };
