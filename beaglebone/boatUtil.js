@@ -34,23 +34,35 @@ var fn = {
      * @param  {number} boatHeading The heading of the boat, in degrees, relative to north
      * @return {object}             {heading, headingToBoat, speed}
      */
-    calcApparentWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
+     calcApparentWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
 
-        var trueWindVec = util.createVector(windSpeed, util.toRadians(windHeading));
-        var boatVec = util.createVector(boatSpeed, util.toRadians(boatHeading));
+         var trueWind = this.calcTrueWind(windSpeed, windHeading, boatSpeed, boatHeading);
+         var trueWindHeading = trueWind.heading + 180;
 
-        // The ApparentWind vector
-        var x = boatVec.x + trueWindVec.x;
-        var y = boatVec.y + trueWindVec.y;
+         var trueWindVec = util.createVector(windSpeed, -util.toRadians(trueWindHeading));
+         var boatVec = util.createVector(-boatSpeed, 0);
 
-        var awHeadingToNorth = util.wrapDegrees(90 - util.toDegrees(Math.atan2(y, x)));
-        var awHeadingBoat = util.wrapDegrees(boatHeading - awHeadingToNorth + 180);
-        var awSpeed = Math.sqrt(x * x + y * y);
+         // The ApparentWind vector - relative to boat
+         var x = boatVec.x + trueWindVec.x;
+         var y = boatVec.y + trueWindVec.y;
+
+         var awHeadingToBoat = util.wrapDegrees(180 + util.toDegrees(-Math.atan2(y, x)));
+         var awSpeed = Math.sqrt(x * x + y * y);
+         var awHeadingToNorth = util.wrapDegrees(180 + boatHeading + awHeadingToBoat);
+
+         return {
+             headingToNorth: awHeadingToNorth,
+             heading: awHeadingToBoat,
+             speed: awSpeed
+         };
+     },
+    calcTrueWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
+
+        var twHeadingBoat = util.wrapDegrees(boatHeading - (180 - windHeading));
 
         return {
-            headingToNorth: awHeadingToNorth,
-            heading: awHeadingBoat,
-            speed: awSpeed
+            heading: twHeadingBoat,
+            speed: windSpeed
         };
     },
     calcNextPosition: function(oldLat, oldLong, newSpeed, newHeading, drift, time) {

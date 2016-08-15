@@ -105,8 +105,10 @@ function collectData() {
     var boatVelocity = velocity.calcFromPosition(gpsPosition);
 
     var apparentWind;
+    var trueWind;
     if (wind && boatVelocity !== null) {
         apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
+        trueWind = boatUtil.calcTrueWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
     }
 
     return {
@@ -116,6 +118,7 @@ function collectData() {
                 gps: gpsPosition,
                 velocity: boatVelocity,
                 apparentWind: apparentWind,
+                trueWind: trueWind,
                 servos: {
                     sail: servoSail.getLastValue(),
                     rudder: servoRudder.getLastValue()
