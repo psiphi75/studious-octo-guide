@@ -47,14 +47,16 @@
     },
 
     "gps": {
-        "1": {
+        "1": {  // sim28
             "serialport": "/dev/ttyO2",
+            "baudrate": 9600,
+            "updateRate": 5             // Update rate in Hz
         },
-        "2": {
+        "2": {  // u-blox
             "serialport": "/dev/ttyO4",
+            "baudrate": 115200,
+            "updateRate": 5             // Update rate in Hz
         },
-        "baudrate": 9600,
-        "updateRate": 4             // Update rate in Hz
     },
 
     "mpu9250": {
@@ -96,12 +98,12 @@ magCalibration: {
                 min: { x: -107.3515625, y: -55.62890625, z: 11.40625 },
   max: { x: 40.109375, y: 97.0546875, z: 159.6875 },
   offset: { x: -33.62109375, y: 20.712890625, z: 85.546875 },
-  scale: 
+  scale:
    { x: 1.5204900662251655,
      y: 1.4684805689871312,
      z: 1.5120785036880928 }
 },
-            
+
 
 
 	    // These values were generated using calibrate_gyro.js - you will want to create your own.

@@ -93,20 +93,14 @@ function collectData() {
 
     var wind;
     if (windvane) {
-        wind = windvane.getStatus();
-        console.log('WIND:', wind);
-    } else {
-        wind = {
-            speed: 0,
-            heading: 0
-        };
+        wind = windvane.status;
     }
 
     var boatVelocity = velocity.calcFromPosition(gpsPosition);
 
     var apparentWind;
     var trueWind;
-    if (wind && boatVelocity !== null) {
+    if (wind && boatVelocity) {
         apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
         trueWind = boatUtil.calcTrueWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
     }

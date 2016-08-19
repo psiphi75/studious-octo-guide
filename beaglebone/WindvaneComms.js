@@ -31,10 +31,12 @@
  *                                                                             *
  *******************************************************************************/
 
+var wrc = require('web-remote-control');
+
 function WindvaneComms(wrcOptions, logger) {
 
     logger.info('WindvaneComms: Started');
-    var wrc = require('web-remote-control');
+    var self = this;
 
     this.listener = wrc.createController({
         proxyUrl: wrcOptions.proxyUrl,
@@ -49,26 +51,30 @@ function WindvaneComms(wrcOptions, logger) {
     });
 
     // Listens to commands from the controller
-    var self = this;
     this.listener.on('status', function (status) {
         logger.debug('WindvaneComms: got status update:', status);
-        self.status = status;
+        self.setStatus(status);
     });
 
     this.listener.on('error', logger.error);
     this.logger = logger;
 
+    return {
+        get status() {
+            return self.status;
+        },
+        set status(status) {
+            if (typeof status !== 'object') return;
+            if (typeof status.heading === 'number' && typeof status.speed === 'number') {
+                self.status.heading = status.heading;
+                self.status.speed = status.speed;
+                logger.debug('WindvaneComms: got status', status);
+            } else {
+                logger.error('WindvaneComms: invalid status: ', status);
+            }
+        }
+    };
 }
 
-WindvaneComms.prototype.getStatus = function() {
-    if (!this.status) return undefined;
-
-    var status = this.status;
-    // this.status = undefined;
-    return {
-        heading: status.heading,
-        speed: status.speed
-    };
-};
 
 module.exports = WindvaneComms;

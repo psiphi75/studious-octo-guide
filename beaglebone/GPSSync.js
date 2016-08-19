@@ -29,15 +29,15 @@ function GPSSync(cfg) {
 
     this.gps = {
         '1': {
-            gps: new GPS(cfg.gps['1'].serialport, cfg.gps.baudrate),
+            gps: new GPS(cfg.gps['1'].serialport, cfg.gps['1'].baudrate),
             tmpPostion: null,
         },
         '2': {
-            gps: new GPS(cfg.gps['2'].serialport, cfg.gps.baudrate),
+            gps: new GPS(cfg.gps['2'].serialport, cfg.gps['2'].baudrate),
             tmpPostion: null,
         }
     };
-    this.interval = (1000 / cfg.gps.updateRate) - 50;  // Convert to milliseconds
+    this.interval = (1000 / cfg.gps['1'].updateRate) - 50;  // Convert to milliseconds
 
     this.capture();
 }
