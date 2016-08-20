@@ -34,41 +34,48 @@ var fn = {
      * @param  {number} boatHeading The heading of the boat, in degrees, relative to north
      * @return {object}             {heading, headingToBoat, speed}
      */
-     calcApparentWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
+    calcApparentWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
 
-         var trueWind = this.calcTrueWind(windSpeed, windHeading, boatSpeed, boatHeading);
-         var trueWindHeading = trueWind.heading + 180;
+        var trueWind = this.calcTrueWind(windSpeed, windHeading, boatSpeed, boatHeading);
+        var trueWindHeading = trueWind.heading + 180;
 
-         var trueWindVec = util.createVector(windSpeed, -util.toRadians(trueWindHeading));
-         var boatVec = util.createVector(-boatSpeed, 0);
+        var trueWindVec = util.createVector(windSpeed, -util.toRadians(trueWindHeading));
+        var boatVec = util.createVector(-boatSpeed, 0);
 
-         // The ApparentWind vector - relative to boat
-         var x = boatVec.x + trueWindVec.x;
-         var y = boatVec.y + trueWindVec.y;
+        // The ApparentWind vector - relative to boat
+        var x = boatVec.x + trueWindVec.x;
+        var y = boatVec.y + trueWindVec.y;
 
-         var awHeadingToBoat = util.wrapDegrees(180 + util.toDegrees(-Math.atan2(y, x)));
-         var awSpeed = Math.sqrt(x * x + y * y);
-         var awHeadingToNorth = util.wrapDegrees(180 + boatHeading + awHeadingToBoat);
+        var awHeadingToBoat = util.wrapDegrees(180 + util.toDegrees(-Math.atan2(y, x)));
+        var awSpeed = Math.sqrt(x * x + y * y);
+        var awHeadingToNorth = util.wrapDegrees(180 + boatHeading + awHeadingToBoat);
 
-         return {
-             headingToNorth: awHeadingToNorth,
-             heading: awHeadingToBoat,
-             speed: awSpeed
-         };
-     },
+        return {
+            headingToNorth: awHeadingToNorth,
+            heading: awHeadingToBoat,
+            speed: awSpeed
+        };
+    },
     calcTrueWind: function(windSpeed, windHeading, boatSpeed, boatHeading) {
-
-        var twHeadingBoat = util.wrapDegrees(boatHeading - (180 - windHeading));
-
+        var windDirection = util.wrapDegrees(windHeading - 180);
+        var twHeadingBoat = util.wrapDegrees(windDirection - boatHeading);
         return {
             heading: twHeadingBoat,
             speed: windSpeed
         };
     },
     calcNextPosition: function(oldLat, oldLong, newSpeed, newHeading, drift, time) {
-        // FIXME: Need to include drift in speed and heading
-        return util.getNextLatLongFromVelocity(oldLat, oldLong, newSpeed, newHeading, time.delta);
+        var tmpPos;
+        tmpPos = util.getNextLatLongFromVelocity(oldLat, oldLong, newSpeed, newHeading, time.delta);
+        tmpPos = util.getNextLatLongFromVelocity(tmpPos.latitude, tmpPos.longitude, drift.wind.speed, drift.wind.headingToNorth, time.delta);
+        tmpPos = util.getNextLatLongFromVelocity(tmpPos.latitude, tmpPos.longitude, drift.water.speed, drift.water.headingToNorth, time.delta);
+        return tmpPos;
+    },
+    calcVMG: function(trueWind, boatVelocity) {
+        var theta = util.toRadians(trueWind.heading);
+        return boatVelocity.speed * Math.cos(theta);
     }
+
 };
 
 module.exports = fn;

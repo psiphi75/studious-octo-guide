@@ -60,7 +60,7 @@ module.exports = function ConfigGPS(serialport, baudrate, updateRate, allDoneCal
     // }
 
     function setNmeaOutput() {
-        pmtk.commands.setNmeaOutput(['GGA', 'RMC'], stdCallbackFactory('Change NMEA output', setUpdateRate));
+        pmtk.commands.setNmeaOutput(['GGA'], stdCallbackFactory('Change NMEA output', setUpdateRate));
     }
 
     function setUpdateRate() {

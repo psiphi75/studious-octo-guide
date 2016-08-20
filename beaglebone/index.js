@@ -78,7 +78,7 @@ var velocity = new Velocity();
 //
 function sendData() {
     var data = collectData();
-    toy.status(data);
+    manualControl.status(data);
     logger.info('STATUS:' + JSON.stringify(data));
 }
 // Collect the data into a nice object ready for sending
@@ -91,16 +91,24 @@ function collectData() {
         isFirstGPS = false;
     }
 
+    var attitudeValues = attitude.getAttitude();
+
     var wind;
     if (windvane) {
-        wind = windvane.status;
+        wind = windvane.getStatus();
     }
 
     var boatVelocity = velocity.calcFromPosition(gpsPosition);
+    if (!boatVelocity || boatVelocity.speed === 0) {
+        boatVelocity = {
+            speed: 0,
+            heading: attitudeValues.heading
+        };
+    }
 
     var apparentWind;
     var trueWind;
-    if (wind && boatVelocity) {
+    if (wind) {
         apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
         trueWind = boatUtil.calcTrueWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
     }
@@ -108,11 +116,11 @@ function collectData() {
     return {
            dt: cfg.webRemoteControl.updateInterval,
            boat: {
-                attitude: attitude.getAttitude(),
+                attitude: attitudeValues,
                 gps: gpsPosition,
                 velocity: boatVelocity,
-                apparentWind: apparentWind,
                 trueWind: trueWind,
+                apparentWind: apparentWind,
                 servos: {
                     sail: servoSail.getLastValue(),
                     rudder: servoRudder.getLastValue()
@@ -143,8 +151,8 @@ var servoRudder = new Servo('Rudder', obs, cfg.servos.rudder, function () {});
 var wrc = require('web-remote-control');
 var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
                    channel: cfg.webRemoteControl.channel,
-                   udp4: false,
-                   tcp: true,
+                   udp4: true,
+                   tcp: false,
                    log: logger.debug };
 
 logger.debug(wrcOptions);
@@ -175,29 +183,29 @@ if (cfg.webRemoteControl.useNetworkDiscovery) {
     initToyToProxyCommunication();
 }
 
-var toy = { status: function() {} };  // dummy function for now... until registered
+var manualControl = { status: function() {} };  // dummy function for now... until registered
 function initToyToProxyCommunication() {
 
     // Don't initialise twice
-    if (toy && toy.ping) return;
+    if (manualControl && manualControl.ping) return;
 
-    toy = wrc.createToy(wrcOptions);
+    manualControl = wrc.createToy(wrcOptions);
 
     // Should wait until we are registered before doing anything else
-    toy.on('register', handleRegistered);
+    manualControl.on('register', handleRegistered);
 
     // Ping the proxy and get the response time (in milliseconds)
-    toy.ping(handlePing);
+    manualControl.ping(handlePing);
 
     // Listens to commands from the controller
-    toy.on('command', handleCommand);
+    manualControl.on('command', handleManualCommand);
 
-    toy.on('error', function(err) {
+    manualControl.on('error', function(err) {
         logger.error(err);
     });
 }
 
-function handleCommand(command) {
+function handleManualCommand(command) {
 
     switch (command.action) {
         case 'note':
@@ -210,6 +218,9 @@ function handleCommand(command) {
             break;
         case 'move':
             actionMove(command);
+            break;
+        case 'mode':
+            actionChangeMode(command);
             break;
         default:
             logger.error('ERROR - invalid command: ' + JSON.stringify(command));
@@ -234,6 +245,27 @@ function actionMove(command) {
     servoSail.set(command.servoSail);
     servoRudder.set(command.servoRudder);
 
+}
+
+var currentMode = 'manual';
+function actionChangeMode(command) {
+    var newMode = command.mode;
+    if (currentMode === newMode) {
+        logger.info('MODE: already in the given mode: ', newMode);
+    } else if (newMode === 'robotic') {
+        logger.info('MODE: Switching to robotic mode');
+        switchToRoboticMode();
+    } else {
+        logger.info('MODE: Switching to manual mode');
+        switchToManualMode();
+    }
+}
+
+function switchToRoboticMode() {
+    currentMode = 'robotic';
+}
+function switchToManualMode() {
+    currentMode = 'manual';
 }
 
 /********************************************************************************************

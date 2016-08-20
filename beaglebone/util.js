@@ -37,8 +37,8 @@ var util = {
     },
     createVector: function (len, angle) {
         return {
-            x: len * Math.sin(angle),
-            y: len * Math.cos(angle)
+            x: len * Math.cos(angle),
+            y: len * Math.sin(angle)
         };
     },
     wrapDegrees: function (deg) {
@@ -228,12 +228,13 @@ var util = {
         };
     },
     isValidGPS: function(gps) {
-            if (!gps || typeof gps !== 'object') return false;
+            if (gps === null) return false;
+            if (typeof gps !== 'object') return false;
             if (!util.isNumeric(gps.latitude)) return false;
             if (!util.isNumeric(gps.longitude)) return false;
             if (gps.latitude === 0 && gps.longitude === 0) return false;
             return true;
-    },
+    }
 
 };
 

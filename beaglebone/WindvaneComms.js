@@ -52,29 +52,33 @@ function WindvaneComms(wrcOptions, logger) {
 
     // Listens to commands from the controller
     this.listener.on('status', function (status) {
-        logger.debug('WindvaneComms: got status update:', status);
         self.setStatus(status);
     });
 
     this.listener.on('error', logger.error);
     this.logger = logger;
 
-    return {
-        get status() {
-            return self.status;
-        },
-        set status(status) {
-            if (typeof status !== 'object') return;
-            if (typeof status.heading === 'number' && typeof status.speed === 'number') {
-                self.status.heading = status.heading;
-                self.status.speed = status.speed;
-                logger.debug('WindvaneComms: got status', status);
-            } else {
-                logger.error('WindvaneComms: invalid status: ', status);
-            }
-        }
-    };
 }
+
+WindvaneComms.prototype.getStatus = function() {
+    return this.status;
+};
+
+WindvaneComms.prototype.setStatus = function(status) {
+    if (typeof status !== 'object') return;
+    if (typeof status.heading === 'number' && typeof status.speed === 'number') {
+        var heading = status.heading;
+        var speed = status.speed;
+        if (speed < 0) speed = 0;
+        this.status = {
+            speed: speed,
+            heading: heading
+        };
+        this.logger.info('WindvaneComms: got status', status);
+    } else {
+        this.logger.error('WindvaneComms: invalid status: ', status);
+    }
+};
 
 
 module.exports = WindvaneComms;

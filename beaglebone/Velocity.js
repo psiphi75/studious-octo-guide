@@ -25,6 +25,12 @@
 
 var util = require('./util');
 
+var ZERO_VELOCITY = {
+    speed: 0,
+    heading: 0
+};
+
+
 /**
  * Keep a track of the GPS positions and calculate the velocity.
  */
@@ -32,28 +38,24 @@ function Velocity() {
     this.speed = 0;
     this.heading = 0;
     this.lastPosition = null;
+    this.lastVelocity = util.clone(ZERO_VELOCITY);
 }
 
 Velocity.prototype.calcFromPosition = function(position) {
 
-    var zero = {
-        speed: 0,
-        heading: 0
-    };
-
     if (!util.isValidGPS(position)) {
-        console.log('Velocity: invalid position', position);
-        return zero;
+        return util.clone(this.lastVelocity);
     }
 
     if (this.lastPosition === null) {
         this.lastPosition = util.clone(position);
-        return zero;
+        return ZERO_VELOCITY;
     }
 
     var dt_ms = position.time - this.lastPosition.time;
     var velocity = util.getVelocityFromDeltaLatLong(position.latitude, position.longitude, this.lastPosition.latitude, this.lastPosition.longitude, dt_ms);
     this.lastPosition = util.clone(position);
+    this.lastVelocity = util.clone(velocity);
     return velocity;
 
 };
