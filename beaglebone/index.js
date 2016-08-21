@@ -109,9 +109,11 @@ function collectData() {
     var apparentWind;
     var trueWind;
     if (wind) {
-        apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
-        trueWind = boatUtil.calcTrueWind(wind.speed, wind.heading, boatVelocity.speed, boatVelocity.heading);
+        console.log('WIND SSS: ', wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading)
+        apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading);
+        trueWind = boatUtil.calcTrueWind(wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading);
     }
+
 
     return {
            dt: cfg.webRemoteControl.updateInterval,
