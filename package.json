@@ -20,6 +20,8 @@
     "polo": "^0.8.1",
     "web-remote-control": "^1.9.5",
     "winston": "^2.2.0",
-    "wrc-controller": "^0.0.10"
+    "wrc-controller": "^0.0.10",
+    "sailboat-utils": "git+https://github.com/psiphi75/sailboat-utils.git",
+    "sailboat-ai-psiphi75": "git+https://github.com/psiphi75/sailboat-ai-psiphi75.git"
   }
 }

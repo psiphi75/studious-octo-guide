@@ -44,6 +44,11 @@ logger.info('HEADER:' + JSON.stringify(header));
 logger.info('--- CONFIG END ---');
 
 
+var MODE_MANUAL = 'manual';
+var MODE_AUTO = 'robotic';
+var mode = MODE_MANUAL;
+
+
 /*******************************************************************************
  *                                                                             *
  *                           Load necessary libraries                          *
@@ -53,8 +58,8 @@ logger.info('--- CONFIG END ---');
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
-var boatUtil = require('./boatUtil');
-var util = require('./util');
+var boatUtil = require('sailboat-util/boatUtil');
+var util = require('sailboat-util/util');
 
 var GPSSync = require('./GPSSync');
 var gps = new GPSSync(cfg);
@@ -69,6 +74,51 @@ var velocity = new Velocity();
 
 /*******************************************************************************
  *                                                                             *
+ *                              Awaken our robot                               *
+ *                                                                             *
+ *******************************************************************************/
+
+var Psiphi75 = require('sailboat-ai-psiphi75');
+var robot = new Psiphi75();
+robot.init({
+    'type': 'fleet-race',
+    'waypoints': [{
+                    'latitude': -36.80959066043442,
+                    'longitude': 174.75014324799585,
+                    'achieved': false,
+                    'type': 'circle',
+                    'radius': 2
+                }, {
+                    'latitude': -36.80957516109161,
+                    'longitude': 174.75038367510066,
+                    'achieved': false,
+                    'type': 'circle',
+                    'radius': 2
+                }, {
+                    'latitude': -36.80941416766029,
+                    'longitude': 174.75067288150413,
+                    'achieved': false,
+                    'type': 'circle',
+                    'radius': 2
+                }, {
+                    'latitude': -36.80927504428124,
+                    'longitude': 174.750659676397,
+                    'achieved': false,
+                    'type': 'circle',
+                    'radius': 2
+            }],
+    'boundary': [{ 'latitude': -36.80957695, 'longitude': 174.75005930},
+                 { 'latitude': -36.80972644, 'longitude': 174.75022131},
+                 { 'latitude': -36.80947036, 'longitude': 174.75079291},
+                 { 'latitude': -36.80908740, 'longitude': 174.75076607},
+                 { 'latitude': -36.80910334, 'longitude': 174.75055488},
+                 { 'latitude': -36.80935610, 'longitude': 174.75043135}],
+    'timeLimit': 300,
+    'timeToStart': -300000
+});
+
+/*******************************************************************************
+ *                                                                             *
  *                           Sensor collection code                            *
  *                                                                             *
  *******************************************************************************/
@@ -77,13 +127,16 @@ var velocity = new Velocity();
 // Sends data to the controller
 //
 function sendData() {
-    var data = collectData();
-    manualControl.status(data);
-    logger.info('STATUS:' + JSON.stringify(data));
+    var state = getState();
+    manualControl.status(state); // We always send the updated state
+    if (mode === MODE_AUTO) {
+        actionMove(robot.ai(state), MODE_AUTO);
+    }
+    logger.info('STATUS:' + JSON.stringify(state));
 }
 // Collect the data into a nice object ready for sending
 var isFirstGPS = true;
-function collectData() {
+function getState() {
 
     var gpsPosition = gps.getPosition();
     if (isFirstGPS && util.isValidGPS(gpsPosition)) {
@@ -109,11 +162,9 @@ function collectData() {
     var apparentWind;
     var trueWind;
     if (wind) {
-        console.log('WIND SSS: ', wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading)
         apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading);
         trueWind = boatUtil.calcTrueWind(wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading);
     }
-
 
     return {
            dt: cfg.webRemoteControl.updateInterval,
@@ -219,7 +270,7 @@ function handleManualCommand(command) {
             }
             break;
         case 'move':
-            actionMove(command);
+            actionMove(command, MODE_MANUAL);
             break;
         case 'mode':
             actionChangeMode(command);
@@ -242,19 +293,20 @@ function handleRegistered() {
 
 // This function gets called when we receive a 'command' from the controller.
 // It will move the servos respectively.
-function actionMove(command) {
+function actionMove(command, targetMode) {
 
-    servoSail.set(command.servoSail);
-    servoRudder.set(command.servoRudder);
+    if (mode === targetMode) {
+        servoSail.set(command.servoSail);
+        servoRudder.set(command.servoRudder);
+    }
 
 }
 
-var currentMode = 'manual';
 function actionChangeMode(command) {
     var newMode = command.mode;
-    if (currentMode === newMode) {
+    if (mode === newMode) {
         logger.info('MODE: already in the given mode: ', newMode);
-    } else if (newMode === 'robotic') {
+    } else if (newMode === MODE_AUTO) {
         logger.info('MODE: Switching to robotic mode');
         switchToRoboticMode();
     } else {
@@ -264,10 +316,10 @@ function actionChangeMode(command) {
 }
 
 function switchToRoboticMode() {
-    currentMode = 'robotic';
+    mode = MODE_AUTO;
 }
 function switchToManualMode() {
-    currentMode = 'manual';
+    mode = MODE_MANUAL;
 }
 
 /********************************************************************************************
