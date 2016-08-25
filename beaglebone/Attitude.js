@@ -27,6 +27,7 @@ var AHRS = require('ahrs');
 var Mpu9250 = require('mpu9250');
 var util = require('./util');
 var geomagnetism = require('geomagnetism');
+var headingFineTuner = require('./OffsetMap');
 
 function Attitude(cfg) {
 
@@ -90,14 +91,7 @@ Attitude.prototype.capture = function() {
     // Don't capture the magnetometer every sample, only once every magSampleInterval.
     var sensorDataArray;
     var startTime = new Date().getTime();
-    // if (startTime - this.lastMagReadTime >= this.magSampleInterval) {
-    //     // DO read magnetometer
-    //     this.lastMagReadTime = startTime;
-        sensorDataArray = this.imu.getMotion9();
-    // } else {
-    //     // Don't read magnetometer
-    //     sensorDataArray = this.imu.getMotion6();
-    // }
+    sensorDataArray = this.imu.getMotion9();
     var endTime = new Date().getTime();
     var sensorData = {
         timestamp: endTime,
@@ -149,7 +143,8 @@ Attitude.prototype.getAttitude = function () {
 
     // NOTE: Here we change the heading to a negative value, this goes against normal mathematical convention.
     //       But this aligns geospatial headings, (e.g. a typical compass).
-    hpr.heading = util.wrapDegrees(-util.toDegrees(hpr.heading) + this.declinationDegrees);
+    var heading = util.wrapDegrees(-util.toDegrees(hpr.heading) + this.declinationDegrees);
+    hpr.heading = headingFineTuner(heading);
     hpr.pitch = util.toDegrees(hpr.pitch);
     hpr.roll = util.toDegrees(hpr.roll);
 

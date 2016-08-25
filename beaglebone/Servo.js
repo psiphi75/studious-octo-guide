@@ -73,10 +73,15 @@ Servo.prototype.set = function (value) {
     }
 
     if (this.name === 'Rudder') {
-        console.log('\n\n\n\nServo ' + this.name, value, scaledValue, adjustPWM(scaledValue))
+        console.log('Servo ' + this.name, value, scaledValue, adjustPWM(scaledValue))
     }
 
-    this.obs.analogWrite(this.pin, adjustPWM(scaledValue), 60, defaultCB);
+    var pwmWriteValue = adjustPWM(scaledValue);
+    this.obs.analogWrite(this.pin, pwmWriteValue, 60, function(err) {
+        if (err) {
+            console.error('Servo: There was an error with a servo: ', pwmWriteValue, err);
+        }
+    });
 
     //
     // This is the default adjust function for the BeagleBone for PWM.
@@ -104,7 +109,9 @@ Servo.prototype.relax = function (callback) {
     }
 
     if (!callback) {
-        callback = defaultCB;
+        callback = function(err) {
+            if (err) console.error('Servo: There was an error with a servo:', err);
+        };
     }
 
     this.obs.pinMode(this.pin, this.obs.OUTPUT, callback);
@@ -134,9 +141,5 @@ Servo.prototype.scale = function (value) {
     return value;
 
 };
-
-function defaultCB(err) {
-    if (err) console.error('Servo: There was an error with a servo:', err);
-}
 
 module.exports = Servo;

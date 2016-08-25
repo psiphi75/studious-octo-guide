@@ -30,6 +30,7 @@ var ZERO_VELOCITY = {
     heading: 0
 };
 
+var MAX_POSSIBLE_SPEED = 2.5;
 
 /**
  * Keep a track of the GPS positions and calculate the velocity.
@@ -39,7 +40,7 @@ function Velocity() {
     this.heading = 0;
     this.lastPosition = null;
     this.lastVelocity = util.clone(ZERO_VELOCITY);
-    this.aveSpeed = new Average(7);
+    // this.aveSpeed = new Average(7);
 }
 
 Velocity.prototype.calcFromPosition = function(position) {
@@ -56,9 +57,14 @@ Velocity.prototype.calcFromPosition = function(position) {
     var dt_ms = position.time - this.lastPosition.time;
     var velocity = util.getVelocityFromDeltaLatLong(position.latitude, position.longitude, this.lastPosition.latitude, this.lastPosition.longitude, dt_ms);
 
-    // Average out the velocity
-    this.aveSpeed.push(velocity.speed);
-    velocity.speed = this.aveSpeed.get();
+    // Drop this position since the speed is too high
+    if (velocity.speed > MAX_POSSIBLE_SPEED) {
+        return util.clone(this.lastVelocity);
+    }
+
+    // // Average out the velocity
+    // this.aveSpeed.push(velocity.speed);
+    // velocity.speed = this.aveSpeed.get();
 
     this.lastPosition = util.clone(position);
     this.lastVelocity = util.clone(velocity);
@@ -66,18 +72,18 @@ Velocity.prototype.calcFromPosition = function(position) {
 
 };
 
-function Average(num) {
-    this.values = [];
-    this.num = num;
-}
-Average.prototype.push = function (val) {
-    if (typeof val !== 'number') return;
-    if (val < 0 || val > 2) return;
-    this.values.push(val);
-    if (this.values.length > this.num) this.values.shift();
-};
-Average.prototype.get = function () {
-    return this.values.reduce(function(sum, val) { return sum + val; }, 0) / this.values.length;
-};
+// function Average(num) {
+//     this.values = [];
+//     this.num = num;
+// }
+// Average.prototype.push = function (val) {
+//     if (typeof val !== 'number') return;
+//     if (val < 0 || val > 2) return;
+//     this.values.push(val);
+//     if (this.values.length > this.num) this.values.shift();
+// };
+// Average.prototype.get = function () {
+//     return this.values.reduce(function(sum, val) { return sum + val; }, 0) / this.values.length;
+// };
 
 module.exports = Velocity;

@@ -58,8 +58,8 @@ var mode = MODE_MANUAL;
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
-var boatUtil = require('sailboat-util/boatUtil');
-var util = require('sailboat-util/util');
+var boatUtil = require('sailboat-utils/boatUtil');
+var util = require('sailboat-utils/util');
 
 var GPSSync = require('./GPSSync');
 var gps = new GPSSync(cfg);
@@ -130,7 +130,10 @@ function sendData() {
     var state = getState();
     manualControl.status(state); // We always send the updated state
     if (mode === MODE_AUTO) {
-        actionMove(robot.ai(state), MODE_AUTO);
+        var command = robot.ai(state);
+        if (command.action === 'move') {
+            actionMove(command, MODE_AUTO);
+        }
     }
     logger.info('STATUS:' + JSON.stringify(state));
 }
@@ -168,6 +171,7 @@ function getState() {
 
     return {
            dt: cfg.webRemoteControl.updateInterval,
+           isRobotic: (mode === MODE_AUTO),
            boat: {
                 attitude: attitudeValues,
                 gps: gpsPosition,
