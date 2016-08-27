@@ -38,12 +38,6 @@ function GPS(serialPort, baudRate) {
         parser: SerialPort.parsers.readline('\r\n')
     });
 
-    // FIXME: This code needs to be removed
-    var lastGPS = {
-        sameCounter: -1,
-        notValid: -1
-    };
-
     this.speedData = null;
     this.positionData = null;
 
@@ -52,14 +46,11 @@ function GPS(serialPort, baudRate) {
     //
     gps.on('data', function(data) {
         if (data.lat === null || (data.lat === 0 && data.lon === 0)) {
-            lastGPS.notValid += 1;
             return;
         }
         if (!data.valid) {
-            lastGPS.notValid += 1;
             return;
         }
-        lastGPS.notValid = 0;
 
         if (data.type === 'RMC') handleSpeedData(data);
         if (data.type === 'GGA') handlePositionData(data);
@@ -69,7 +60,7 @@ function GPS(serialPort, baudRate) {
     // Listen to the serial port and forward to the GPS.
     //
     port.on('data', function(data) {
-        console.log('DEBUG GPS: ', serialPort, new Date().getTime(), ': (same=' + lastGPS.sameCounter + ', !valid=' + lastGPS.notValid + ')', data);
+        console.log('DEBUG GPS:', serialPort, data);
         try {
             gps.update(data);
         } catch (err) {
@@ -92,22 +83,7 @@ function GPS(serialPort, baudRate) {
     //
     // Handle valid GPS position updates
     //
-    var sameCounter = 0;
-    var lastLat = -1000;
-    var lastLon = -1000;
     function handlePositionData(data) {
-
-        //
-        // Keep a track of unchanged GPS values
-        //
-        var latLongSame = (data.lat === lastLat && data.lon === lastLon);
-        if (latLongSame) {
-            sameCounter += 1
-        } else {
-            sameCounter = 0;
-            lastLat = data.lat;
-            lastLon = data.lon;
-        }
 
         //
         // Set out position information
@@ -119,19 +95,10 @@ function GPS(serialPort, baudRate) {
             altitude: data.alt,         // Meters
             quality: data.quality,
             hdop: data.hdop,
-            sameCounter: sameCounter
         };
         self.emit('position', self.positionData);
-        console.log('DEBUG GPS: emitted "position": ', JSON.stringify(self.positionData));
+        console.log('DEBUG GPS:', serialPort, 'emitted "position": ', JSON.stringify(self.positionData));
 
-        // FIXME: Remove this code - it's for debugging
-        if (self.positionData.latitude === lastGPS.latitude && self.positionData.longitude === lastGPS.longitude) {
-            lastGPS.sameCounter += 1;
-        } else {
-            lastGPS.sameCounter = 0;
-        }
-        lastGPS.latitude = self.positionData.latitude;
-        lastGPS.longitude = self.positionData.longitude;
     }
 
     EventEmitter.call(this);
