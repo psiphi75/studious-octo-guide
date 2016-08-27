@@ -142,9 +142,12 @@ var isFirstGPS = true;
 function getState() {
 
     var gpsPosition = gps.getPosition();
-    if (isFirstGPS && util.isValidGPS(gpsPosition)) {
-        attitude.setDeclination(gpsPosition);
-        isFirstGPS = false;
+    if (util.isValidGPS(gpsPosition)) {
+        util.wrscGPSlogger(gpsPosition);
+        if (isFirstGPS) {
+            attitude.setDeclination(gpsPosition);
+            isFirstGPS = false;
+        }
     }
 
     var attitudeValues = attitude.getAttitude();

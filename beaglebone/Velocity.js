@@ -23,7 +23,7 @@
 
 'use strict';
 
-var util = require('./util');
+var util = require('sailboat-utils/util');
 
 var ZERO_VELOCITY = {
     speed: 0,

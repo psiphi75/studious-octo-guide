@@ -58,7 +58,34 @@ echo "### 1) Load the necessary components"
 ${NODE} ${SCRIPT_DIR}/boot/boot.js
 ${NODE} ${SCRIPT_DIR}/boot/initGPS.js
 
-# sleep 2
+#
+# These commands send data to the u-blox GPS device
+#
+UBOX_GPS=/dev/ttyO4
+
+# GxGSA off
+echo -n -e \\xB5\\x62\\x06\\x01\\x08\\x00\\xF0\\x02\\x00\\x00\\x00\\x00\\x00\\x01\\x02\\x32\\x10\x13 > ${UBOX_GPS}
+sleep 1
+
+# GxGSV off
+echo -n -e \\xB5\\x62\\x06\\x01\\x08\\x00\\xF0\\x03\\x00\\x00\\x00\\x00\\x00\\x01\\x03\\x39\\x10\\x13 > ${UBOX_GPS}
+sleep 1
+
+# GxRMC off
+echo -n -e \\xB5\\x62\\x06\\x01\\x08\\x00\\xF0\\x04\\x00\\x00\\x00\\x00\\x00\\x01\\x04\\x40\\x10\\x13 > ${UBOX_GPS}
+sleep 1
+
+# GxVTG off
+echo -n -e \\xB5\\x62\\x06\\x01\\x08\\x00\\xF0\\x05\\x00\\x00\\x00\\x00\\x00\\x01\\x05\\x47\\x10\\x13 > ${UBOX_GPS}
+sleep 1
+
+# GxGLL off
+echo -n -e \\xB5\\x62\\x06\\x01\\x08\\x00\\xF0\\x01\\x00\\x00\\x00\\x00\\x00\\x01\\x01\\x2B\\x10\\x13 > ${UBOX_GPS}
+sleep 1
+
+# NMEA rate: 5Hz
+echo -n -e \\xB5\\x62\\x06\\x08\\x06\\x00\\xC8\\x00\\x01\\x00\\x01\\x00\\xDE\\x6A\\x10\\x13 > ${UBOX_GPS}
+sleep 1
 
 
 # echo "### 2) Enable the network (PPP)"

@@ -25,7 +25,7 @@
 
 var AHRS = require('ahrs');
 var Mpu9250 = require('mpu9250');
-var util = require('./util');
+var util = require('sailboat-utils/util');
 var geomagnetism = require('geomagnetism');
 var headingFineTuner = require('./OffsetMap');
 

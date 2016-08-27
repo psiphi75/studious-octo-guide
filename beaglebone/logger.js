@@ -47,6 +47,16 @@ var logger = new (winston.Logger)({
   ]
 });
 
+var fs = require('fs');
+logger.wrscLog = function(wrscStr) {
+
+    fs.appendFile('/root/logs/wrsc.log', wrscStr, function (err) {
+        if (err) {
+            logger.error('logger.wrscLog()', err);
+        }
+    });
+};
+
 if (process.env.DEBUG) {
     logger.level = 'debug';
 }
