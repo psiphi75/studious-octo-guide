@@ -75,47 +75,42 @@ var velocity = new Velocity();
 /*******************************************************************************
  *                                                                             *
  *                              Awaken our robot                               *
+ *                      (after checking out the course)                        *
  *                                                                             *
  *******************************************************************************/
 
 var Psiphi75 = require('sailboat-ai-psiphi75');
-var robot = new Psiphi75();
-robot.init({
-    'type': 'fleet-race',
-    'waypoints': [{
-                    'latitude': -36.80959066043442,
-                    'longitude': 174.75014324799585,
-                    'achieved': false,
-                    'type': 'circle',
-                    'radius': 2
-                }, {
-                    'latitude': -36.80957516109161,
-                    'longitude': 174.75038367510066,
-                    'achieved': false,
-                    'type': 'circle',
-                    'radius': 2
-                }, {
-                    'latitude': -36.80941416766029,
-                    'longitude': 174.75067288150413,
-                    'achieved': false,
-                    'type': 'circle',
-                    'radius': 2
-                }, {
-                    'latitude': -36.80927504428124,
-                    'longitude': 174.750659676397,
-                    'achieved': false,
-                    'type': 'circle',
-                    'radius': 2
-            }],
-    'boundary': [{ 'latitude': -36.80957695, 'longitude': 174.75005930},
-                 { 'latitude': -36.80972644, 'longitude': 174.75022131},
-                 { 'latitude': -36.80947036, 'longitude': 174.75079291},
-                 { 'latitude': -36.80908740, 'longitude': 174.75076607},
-                 { 'latitude': -36.80910334, 'longitude': 174.75055488},
-                 { 'latitude': -36.80935610, 'longitude': 174.75043135}],
-    'timeLimit': 300,
-    'timeToStart': -300000
+var robot;
+
+var contestManager = wrc.createController({
+    proxyUrl: 'localhost',
+    channel: 'ContestManager',
+    udp4: false,
+    tcp: true
 });
+
+contestManager.once('register', function() {
+
+    //
+    // Once registered send the request for a contest
+    //
+    var msgObj = cfg.contest;
+    msgObj.action = 'request-contest';
+    contestManager.command(msgObj);
+
+});
+
+contestManager.on('status', function(msgObj) {
+    robot = new Psiphi75();
+    msgObj.saveState = function(wpState) {
+        contestManager.command({
+            action: 'update-waypoint-state',
+            state: wpState
+        });
+    };
+    robot.init(msgObj);
+});
+
 
 /*******************************************************************************
  *                                                                             *
@@ -129,7 +124,7 @@ robot.init({
 function sendData() {
     var state = getState();
     manualControl.status(state); // We always send the updated state
-    if (mode === MODE_AUTO) {
+    if (mode === MODE_AUTO && robot) {
         var command = robot.ai(state);
         if (command.action === 'move') {
             actionMove(command, MODE_AUTO);

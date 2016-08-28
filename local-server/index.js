@@ -26,3 +26,10 @@
 require('./runProxy');
 
 require('./runWWWController');
+
+//
+//  Load the contest manager to load and save contests.  COURSE_ON_REGISTER will make the course state available
+//  immediately to the AI.
+//
+process.env.COURSE_ON_REGISTER = 'true';
+require('sailboat-utils/contests/runContestManager');

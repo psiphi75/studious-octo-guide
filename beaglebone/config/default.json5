@@ -1,4 +1,13 @@
 {
+
+    "contest": {
+        type: "fleet-race",
+        location: "viana-do-castelo",
+        realtime: true,
+        // windSpeed: 5,
+        // windHeading: 180
+    },
+
     /*
      * Define where the remote proxy will be.
      */
@@ -94,19 +103,30 @@
             ACCEL_FS: 0,
 
             // These values were generated using calibrate_mag.js - you will want to create your own.
-magCalibration: {
-                min: { x: -107.3515625, y: -55.62890625, z: 11.40625 },
-  max: { x: 40.109375, y: 97.0546875, z: 159.6875 },
-  offset: { x: -33.62109375, y: 20.712890625, z: 85.546875 },
-  scale:
-   { x: 1.5204900662251655,
-     y: 1.4684805689871312,
-     z: 1.5120785036880928 }
-},
+            magCalibration: {
+                min: {
+                    x: -107.3515625,
+                    y: -55.62890625,
+                    z: 11.40625
+                },
+                max: {
+                    x: 40.109375,
+                    y: 97.0546875,
+                    z: 159.6875
+                },
+                offset: {
+                    x: -33.62109375,
+                    y: 20.712890625,
+                    z: 85.546875
+                },
+                scale: {
+                    x: 1.5204900662251655,
+                    y: 1.4684805689871312,
+                    z: 1.5120785036880928
+                }
+            },
 
-
-
-	    // These values were generated using calibrate_gyro.js - you will want to create your own.
+	        // These values were generated using calibrate_gyro.js - you will want to create your own.
             // NOTE: These are temperature dependent.
             gyroBiasOffset: {
                 x: 0.509328244274809,
