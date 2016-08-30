@@ -58,7 +58,6 @@ var mode = MODE_MANUAL;
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
-var boatUtil = require('sailboat-utils/boatUtil');
 var util = require('sailboat-utils/util');
 
 var GPSSync = require('./GPSSync');
@@ -68,9 +67,6 @@ var Attitude = require('./Attitude');
 var attitude = new Attitude(cfg);
 attitude.setDeclination(cfg.location);
 attitude.startCapture();
-
-var Velocity = require('./Velocity');
-var velocity = new Velocity();
 
 /*******************************************************************************
  *                                                                             *
@@ -152,30 +148,12 @@ function getState() {
         wind = windvane.getStatus();
     }
 
-    var boatVelocity = velocity.calcFromPosition(gpsPosition);
-    if (!boatVelocity || boatVelocity.speed === 0) {
-        boatVelocity = {
-            speed: 0,
-            heading: attitudeValues.heading
-        };
-    }
-
-    var apparentWind;
-    var trueWind;
-    if (wind) {
-        apparentWind = boatUtil.calcApparentWind(wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading);
-        trueWind = boatUtil.calcTrueWind(wind.speed, wind.heading, boatVelocity.speed, attitudeValues.heading);
-    }
-
     return {
            dt: cfg.webRemoteControl.updateInterval,
            isRobotic: (mode === MODE_AUTO),
            boat: {
                 attitude: attitudeValues,
                 gps: gpsPosition,
-                velocity: boatVelocity,
-                trueWind: trueWind,
-                apparentWind: apparentWind,
                 servos: {
                     sail: servoSail.getLastValue(),
                     rudder: servoRudder.getLastValue()
@@ -264,12 +242,7 @@ function handleManualCommand(command) {
 
     switch (command.action) {
         case 'note':
-            logger.info('NOTE:' + JSON.stringify(command.note));
-            if (command.note === 'Shutdown') {
-                require('child_process').exec('/sbin/shutdown --poweroff now', function (msg) {
-                    logger.info('Shutting down: ' + msg);
-                });
-            }
+            actionOnNote(command);
             break;
         case 'move':
             actionMove(command, MODE_MANUAL);
@@ -281,6 +254,31 @@ function handleManualCommand(command) {
             logger.error('ERROR - invalid command: ' + JSON.stringify(command));
     }
 
+}
+
+function actionOnNote(command) {
+
+    logger.info('NOTE:' + JSON.stringify(command.note));
+    switch (command.note) {
+        case 'Shutdown':
+            require('child_process').exec('/sbin/shutdown --poweroff now', function (msg) {
+                logger.info('Shutting down: ' + msg);
+            });
+            break;
+        case 'Reboot':
+            require('child_process').exec('/sbin/shutdown --reboot now', function (msg) {
+                logger.info('Rebooting: ' + msg);
+            });
+            break;
+        case 'RestartProcess':
+            throw new Error('User requested "RestartProcess"');
+        case 'ResetCourse':
+            contestManager.command({
+                action: 'reset-waypoint-state',
+            });
+            break;
+        default:
+    }
 }
 
 function handlePing(time) {
