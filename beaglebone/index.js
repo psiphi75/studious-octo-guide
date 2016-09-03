@@ -60,6 +60,7 @@ process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
 var util = require('sailboat-utils/util');
 
+var wrc = require('web-remote-control');
 var GPSSync = require('./GPSSync');
 var gps = new GPSSync(cfg);
 
@@ -81,8 +82,8 @@ var robot;
 var contestManager = wrc.createController({
     proxyUrl: 'localhost',
     channel: 'ContestManager',
-    udp4: false,
-    tcp: true
+    udp4: true,
+    tcp: false
 });
 
 contestManager.once('register', function() {
@@ -98,13 +99,13 @@ contestManager.once('register', function() {
 
 contestManager.on('status', function(msgObj) {
     robot = new Psiphi75();
-    msgObj.saveState = function(wpState) {
+    msgObj.contest.saveState = function(wpState) {
         contestManager.command({
             action: 'update-waypoint-state',
             state: wpState
         });
     };
-    robot.init(msgObj);
+    robot.init(msgObj.contest);
 });
 
 
@@ -134,7 +135,7 @@ function getState() {
 
     var gpsPosition = gps.getPosition();
     if (util.isValidGPS(gpsPosition)) {
-        util.wrscGPSlogger(gpsPosition);
+        logger.wrscLog(util.wrscGPSlogger(gpsPosition));
         if (isFirstGPS) {
             attitude.setDeclination(gpsPosition);
             isFirstGPS = false;
@@ -181,7 +182,6 @@ var Servo = require('./Servo');
 var servoSail = new Servo('Sail', obs, cfg.servos.sail, function () {});
 var servoRudder = new Servo('Rudder', obs, cfg.servos.rudder, function () {});
 
-var wrc = require('web-remote-control');
 var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
                    channel: cfg.webRemoteControl.channel,
                    udp4: true,

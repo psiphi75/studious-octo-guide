@@ -24,7 +24,7 @@
 'use strict';
 
 var EventEmitter = require('events').EventEmitter;
-var util = require('sailboat-utils/util');
+var util = require('util');
 
 function GPS(serialPort, baudRate) {
 

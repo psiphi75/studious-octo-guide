@@ -22,8 +22,8 @@
      * Define our location - required for figuring out true north.
      */
     "location": {
-        "latitude": -36.4,
-        "longitude": 174.2
+        "latitude": 41.68,
+        "longitude": -8.84
     },
 
     /*
