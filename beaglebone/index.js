@@ -44,11 +44,6 @@ logger.info('HEADER:' + JSON.stringify(header));
 logger.info('--- CONFIG END ---');
 
 
-var MODE_MANUAL = 'manual';
-var MODE_AUTO = 'robotic';
-var mode = MODE_MANUAL;
-
-
 /*******************************************************************************
  *                                                                             *
  *                           Load necessary libraries                          *
@@ -68,6 +63,10 @@ var Attitude = require('./Attitude');
 var attitude = new Attitude(cfg);
 attitude.setDeclination(cfg.location);
 attitude.startCapture();
+
+var RoboticState = require('./RoboticState');
+var controlMode = new RoboticState(logger);
+
 
 /*******************************************************************************
  *                                                                             *
@@ -121,10 +120,15 @@ contestManager.on('status', function(msgObj) {
 function sendData() {
     var state = getState();
     manualControl.status(state); // We always send the updated state
-    if (mode === MODE_AUTO && robot) {
-        var command = robot.ai(state);
-        if (command.action === 'move') {
-            actionMove(command, MODE_AUTO);
+    if (controlMode.isRobotic && robot) {
+
+        try {
+            var command = robot.ai(state);
+        } catch (ex) {
+            console.error('ERROR: Running AI: ', ex);
+        }
+        if (command && command.action === 'move') {
+            actionMove(command);
         }
     }
     logger.info('STATUS:' + JSON.stringify(state));
@@ -151,7 +155,7 @@ function getState() {
 
     return {
            dt: cfg.webRemoteControl.updateInterval,
-           isRobotic: (mode === MODE_AUTO),
+           isRobotic: controlMode.isRobotic,
            boat: {
                 attitude: attitudeValues,
                 gps: gpsPosition,
@@ -240,18 +244,25 @@ function initToyToProxyCommunication() {
 
 function handleManualCommand(command) {
 
+    if (!command) {
+        logger.error('ERROR - invalid command: ' + JSON.stringify(command));
+        return;
+    }
+
     switch (command.action) {
         case 'note':
             actionOnNote(command);
             break;
         case 'move':
-            actionMove(command, MODE_MANUAL);
+            if (controlMode.isManual) {
+                actionMove(command);
+            }
             break;
         case 'mode':
-            actionChangeMode(command);
+            controlMode.set(command.mode);
             break;
         default:
-            logger.error('ERROR - invalid command: ' + JSON.stringify(command));
+            logger.error('ERROR - invalid command action: ' + JSON.stringify(command));
     }
 
 }
@@ -293,34 +304,11 @@ function handleRegistered() {
 
 // This function gets called when we receive a 'command' from the controller.
 // It will move the servos respectively.
-function actionMove(command, targetMode) {
-
-    if (mode === targetMode) {
-        servoSail.set(command.servoSail);
-        servoRudder.set(command.servoRudder);
-    }
-
+function actionMove(command) {
+    servoSail.set(command.servoSail);
+    servoRudder.set(command.servoRudder);
 }
 
-function actionChangeMode(command) {
-    var newMode = command.mode;
-    if (mode === newMode) {
-        logger.info('MODE: already in the given mode: ', newMode);
-    } else if (newMode === MODE_AUTO) {
-        logger.info('MODE: Switching to robotic mode');
-        switchToRoboticMode();
-    } else {
-        logger.info('MODE: Switching to manual mode');
-        switchToManualMode();
-    }
-}
-
-function switchToRoboticMode() {
-    mode = MODE_AUTO;
-}
-function switchToManualMode() {
-    mode = MODE_MANUAL;
-}
 
 /********************************************************************************************
  *

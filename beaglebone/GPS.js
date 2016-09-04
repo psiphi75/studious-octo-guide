@@ -97,7 +97,7 @@ function GPS(serialPort, baudRate) {
             hdop: data.hdop,
         };
         self.emit('position', self.positionData);
-        console.log('DEBUG GPS:', serialPort, 'emitted "position": ', JSON.stringify(self.positionData));
+        // console.log('DEBUG GPS:', serialPort, 'emitted "position": ', JSON.stringify(self.positionData));
 
     }
 

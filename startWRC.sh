@@ -14,8 +14,6 @@ WRC_LOG_DIR=/root/logs
 mkdir -p ${WRC_LOG_DIR}
 
 PROXY_LOG="${WRC_LOG_DIR}/server.log"
-# WEB_LOG="${WRC_LOG_DIR}/www-server.log"
-
 
 #
 # Start the proxy
@@ -28,15 +26,3 @@ forever start                        \
     -l $PROXY_LOG                    \
     --uid server                     \
      index.js
-
-
-# #
-# # Start the WebServer
-# #
-# cd $WRC_DIR/www-controller/
-# forever start                        \
-#     --append                         \
-#     -l ${WEB_LOG}                    \
-#     -e ${WEB_LOG}                    \
-#     --uid wrc-www                    \
-#      runWWWController.js

@@ -70,7 +70,7 @@ GPSSync.prototype.capture = function() {
         }
 
         if (evType === 'timeout' || numGPSevents === 2) {
-            console.log('GPSS: evType', evType);
+            // console.log('GPSS: evType', evType);
             wrapUp();
         } else {
             // We have our first event.  Hence trigger the timeout for the next event.
@@ -85,11 +85,11 @@ GPSSync.prototype.capture = function() {
     function wrapUp() {
 
         self.position = bestPostion(self.gps['1'].tmpPosition, self.gps['2'].tmpPosition);
-        console.log('GPSS: wrapUp() 1:', self.position)
-        console.log('GPSS: wrapUp() 2: "' + gpsQualityType + '"', JSON.stringify([self.gps['1'].tmpPosition, self.gps['2'].tmpPosition]));
+        // console.log('GPSS: wrapUp() 1:', self.position)
+        // console.log('GPSS: wrapUp() 2: "' + gpsQualityType + '"', JSON.stringify([self.gps['1'].tmpPosition, self.gps['2'].tmpPosition]));
         self.gps['1'].tmpPosition = null;
         self.gps['2'].tmpPosition = null;
-        console.log('GPSS: wrapUp() 3:', self.position)
+        // console.log('GPSS: wrapUp() 3:', self.position)
 
         clearTimeout(timeoutFunction);
         numGPSevents = 0;
@@ -99,7 +99,6 @@ GPSSync.prototype.capture = function() {
     function bestPostion(pos1, pos2) {
         gpsQualityType = 'FIXME: Overriden for u-blox only';
         // return pos2;
-
 
         // gpsQualityType = 'either is null';
         if (pos2 === null) {

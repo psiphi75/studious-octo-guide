@@ -23,58 +23,47 @@
 
 'use strict';
 
-/*
- * We just run the proxy.
- */
+var StateManager = require('sailboat-utils/StateManager');
 
-var DISCOVERY_PROXY_NAME = 'web-remote-control-proxy';
-var polo = require('polo');
-var apps = polo();
-apps.put({
-    name: DISCOVERY_PROXY_NAME,
-	host: getIPAddress(),
-    port: 31234
-});
+var MODE_MANUAL = 'manual';
+var MODE_ROBOTIC = 'robotic';
 
-var wrc = require('web-remote-control');
-wrc.createProxy({
-    udp4: true,
-    tcp: true,
-    socketio: true,
-    onlyOneControllerPerChannel: true,
-    onlyOneToyPerChannel: true,
-    allowObservers: true,
-    log: function() {}
-});
+function RoboticState(logger) {
+    var isRoboticState = new StateManager('isRobotic');
+    var mode = MODE_MANUAL;
 
-function getIPAddress() {
-
-    var os = require('os');
-    var ifaces = os.networkInterfaces();
-	var addresses = [];
-
-    Object.keys(ifaces).forEach(function (ifname) {
-        var alias = 0;
-
-        ifaces[ifname].forEach(function (iface) {
-            if (iface.family !== 'IPv4' || iface.internal !== false) {
-                // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
-                return;
-            }
-
-            if (alias >= 1) {
-                // this single interface has multiple ipv4 addresses
-                console.log(ifname + ':' + alias, iface.address);
-            } else {
-                // this interface has only one ipv4 adress
-                console.log(ifname, iface.address);
-            }
-			addresses.push(iface.address);
-            alias += 1;
-
-        });
+    isRoboticState.get(function(err, state) {
+        if (state[0]) {
+            mode = MODE_ROBOTIC;
+        } else {
+            mode = MODE_MANUAL;
+        }
     });
 
-    addresses.sort(function(add) { return (add === '192.168.7.1' ? 1 : -1); });
-	return addresses[0];
+    return {
+        get isRobotic() {
+            return mode === MODE_ROBOTIC;
+        },
+        get isManual() {
+            return mode === MODE_MANUAL;
+        },
+        set: function(newMode) {
+            if (mode === newMode) {
+                logger.info('MODE: already in the given mode: ', newMode);
+            } else if (newMode === MODE_ROBOTIC) {
+                logger.info('MODE: Switching to robotic mode');
+                isRoboticState.save([true]);
+                mode = MODE_ROBOTIC;
+            } else if (newMode === MODE_MANUAL) {
+                logger.info('MODE: Switching to manual mode');
+                isRoboticState.save([false]);
+                mode = MODE_MANUAL;
+            } else {
+                logger.error('MODE: Invalid mode: ', newMode);
+            }
+        }
+    };
+
 }
+
+module.exports = RoboticState;

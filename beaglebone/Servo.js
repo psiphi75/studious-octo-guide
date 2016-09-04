@@ -72,9 +72,7 @@ Servo.prototype.set = function (value) {
         return;
     }
 
-    if (this.name === 'Rudder') {
-        console.log('Servo ' + this.name, value, scaledValue, adjustPWM(scaledValue))
-    }
+    console.log('Servo ' + this.name, value, scaledValue, adjustPWM(scaledValue));
 
     var pwmWriteValue = adjustPWM(scaledValue);
     this.obs.analogWrite(this.pin, pwmWriteValue, 60, function(err) {
