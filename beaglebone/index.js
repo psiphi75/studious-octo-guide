@@ -81,8 +81,8 @@ var robot;
 var contestManager = wrc.createController({
     proxyUrl: 'localhost',
     channel: 'ContestManager',
-    udp4: true,
-    tcp: false
+    udp4: false,
+    tcp: true
 });
 
 contestManager.once('register', function() {
@@ -151,6 +151,10 @@ function getState() {
     var wind;
     if (windvane) {
         wind = windvane.getStatus();
+        wind = {
+            speed: 4,
+            heading: -54
+        };
     }
 
     return {
@@ -188,8 +192,8 @@ var servoRudder = new Servo('Rudder', obs, cfg.servos.rudder, function () {});
 
 var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
                    channel: cfg.webRemoteControl.channel,
-                   udp4: true,
-                   tcp: false,
+                   udp4: false,
+                   tcp: true,
                    log: logger.debug };
 
 logger.debug(wrcOptions);

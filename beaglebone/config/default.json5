@@ -12,10 +12,10 @@
      * Define where the remote proxy will be.
      */
     "webRemoteControl": {
-        "url": "localhost",   // The actual URL of the proxy
-        "channel": "Perfectly Yummy Antitau",  // The channel we operate on
-        "updateInterval": 50,    // How often we send a status update over the network (milliseconds)
-        "useNetworkDiscovery": true     // Default to network discovery
+        "url": "localhost", // The actual URL of the proxy
+        "channel": "Perfectly Yummy Antitau", // The channel we operate on
+        "updateInterval": 50, // How often we send a status update over the network (milliseconds)
+        "useNetworkDiscovery": true // Default to network discovery
     },
 
     /*
@@ -52,26 +52,26 @@
      * Modem details
      */
     "modem": {
-         "serialport": "/dev/ttyO1"
+        "serialport": "/dev/ttyO1"
     },
 
     "gps": {
-        "1": {  // sim28
+        "1": { // sim28
             "serialport": "/dev/ttyO2",
             "baudrate": 9600,
-            "updateRate": 5             // Update rate in Hz
+            "updateRate": 5 // Update rate in Hz
         },
-        "2": {  // u-blox
+        "2": { // u-blox
             "serialport": "/dev/ttyO4",
             "baudrate": 9600,
-            "updateRate": 5             // Update rate in Hz
+            "updateRate": 5 // Update rate in Hz
         },
     },
 
     "mpu9250": {
         /*
-        * How often we check the sensor samples (milliseconds).
-        */
+         * How often we check the sensor samples (milliseconds).
+         */
         "sampleInterval": 10,
         "sampleIntervalMagnetometer": 10,
 
@@ -103,35 +103,58 @@
             ACCEL_FS: 0,
 
             // These values were generated using calibrate_mag.js - you will want to create your own.
+            // magCalibration: {
+            //     min: {
+            //         x: -107.3515625,
+            //         y: -55.62890625,
+            //         z: 11.40625
+            //     },
+            //     max: {
+            //         x: 40.109375,
+            //         y: 97.0546875,
+            //         z: 159.6875
+            //     },
+            //     offset: {
+            //         x: -33.62109375,
+            //         y: 20.712890625,
+            //         z: 85.546875
+            //     },
+            //     scale: {
+            //         x: 1.5204900662251655,
+            //         y: 1.4684805689871312,
+            //         z: 1.5120785036880928
+            //     }
+            // },
+            //
             magCalibration: {
                 min: {
-                    x: -107.3515625,
+                    x: -103.8125,
                     y: -55.62890625,
-                    z: 11.40625
+                    z: 5.703125
                 },
                 max: {
-                    x: 40.109375,
+                    x: 46.0078125,
                     y: 97.0546875,
-                    z: 159.6875
+                    z: 153.984375
                 },
                 offset: {
-                    x: -33.62109375,
+                    x: -28.90234375,
                     y: 20.712890625,
-                    z: 85.546875
+                    z: 79.84375
                 },
                 scale: {
-                    x: 1.5204900662251655,
-                    y: 1.4684805689871312,
-                    z: 1.5120785036880928
+                    x: 1.5044193565208321,
+                    y: 1.4762069230178831,
+                    z: 1.5200342465753425
                 }
             },
 
-	        // These values were generated using calibrate_gyro.js - you will want to create your own.
+            // These values were generated using calibrate_gyro.js - you will want to create your own.
             // NOTE: These are temperature dependent.
             gyroBiasOffset: {
-                x: 0.509328244274809,
-                y: 2.191832061068703,
-                z: -0.18914503816793896
+                x: 0.9650992366412207,
+                y: 2.1756335877862574,
+                z: -0.024824427480916008
             },
 
             // These values were generated using calibrate_accel.js - you will want to create your own.
