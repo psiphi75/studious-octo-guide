@@ -85,11 +85,11 @@ GPSSync.prototype.capture = function() {
     function wrapUp() {
 
         self.position = bestPostion(self.gps['1'].tmpPosition, self.gps['2'].tmpPosition);
-        // console.log('GPSS: wrapUp() 1:', self.position)
-        // console.log('GPSS: wrapUp() 2: "' + gpsQualityType + '"', JSON.stringify([self.gps['1'].tmpPosition, self.gps['2'].tmpPosition]));
+        console.log('GPSS: wrapUp() 1:', self.position)
+        console.log('GPSS: wrapUp() 2: "' + gpsQualityType + '"', JSON.stringify([self.gps['1'].tmpPosition, self.gps['2'].tmpPosition]));
         self.gps['1'].tmpPosition = null;
         self.gps['2'].tmpPosition = null;
-        // console.log('GPSS: wrapUp() 3:', self.position)
+        console.log('GPSS: wrapUp() 3:', self.position)
 
         clearTimeout(timeoutFunction);
         numGPSevents = 0;

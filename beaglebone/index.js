@@ -53,6 +53,8 @@ logger.info('--- CONFIG END ---');
 /* Set this for octalbonescript such that it does load capes automatically */
 process.env.AUTO_LOAD_CAPE = 0;
 var obs = require('octalbonescript');
+obs.loadCape('cape-universaln');
+obs.loadCape('BB-ADC');
 var util = require('sailboat-utils/util');
 
 var wrc = require('web-remote-control');
@@ -135,6 +137,8 @@ function sendData() {
 }
 // Collect the data into a nice object ready for sending
 var isFirstGPS = true;
+var OnboardVane = require('./OnboardVane');
+var onboardVane = new OnboardVane(obs);
 function getState() {
 
     var gpsPosition = gps.getPosition();
@@ -148,14 +152,14 @@ function getState() {
 
     var attitudeValues = attitude.getAttitude();
 
-    var wind;
-    if (windvane) {
-        wind = windvane.getStatus();
-        wind = {
-            speed: 4,
-            heading: -54
-        };
-    }
+    // var wind;
+    // if (windvane) {
+    //     wind = windvane.getStatus();
+    //     wind = {
+    //         speed: 4,
+    //         heading: -54
+    //     };
+    // }
 
     return {
            dt: cfg.webRemoteControl.updateInterval,
@@ -163,13 +167,14 @@ function getState() {
            boat: {
                 attitude: attitudeValues,
                 gps: gpsPosition,
+                apparentWind: onboardVane.getStatus(0),
                 servos: {
                     sail: servoSail.getLastValue(),
                     rudder: servoRudder.getLastValue()
                 }
           },
           environment: {
-               wind: wind
+               wind: onboardVane.getStatus(attitudeValues.heading)
           }
     };
 
@@ -197,7 +202,7 @@ var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
                    log: logger.debug };
 
 logger.debug(wrcOptions);
-var windvane;
+// var windvane;
 if (cfg.webRemoteControl.useNetworkDiscovery) {
     var DISCOVERY_PROXY_NAME = 'web-remote-control-proxy';
     var polo = require('polo');
@@ -211,8 +216,8 @@ if (cfg.webRemoteControl.useNetworkDiscovery) {
         if (name === DISCOVERY_PROXY_NAME) {
             wrcOptions.proxyUrl = apps.get(name).host;
             initToyToProxyCommunication();
-            var WindvaneComms = require('./WindvaneComms');
-            windvane = new WindvaneComms(wrcOptions, logger);
+            // var WindvaneComms = require('./WindvaneComms');
+            // windvane = new WindvaneComms(wrcOptions, logger);
         }
     });
 

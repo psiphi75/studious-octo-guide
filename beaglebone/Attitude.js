@@ -27,7 +27,7 @@ var AHRS = require('ahrs');
 var Mpu9250 = require('mpu9250');
 var util = require('sailboat-utils/util');
 var geomagnetism = require('geomagnetism');
-var headingFineTuner = require('./OffsetMap');
+// var headingFineTuner = require('./OffsetMap');
 
 function Attitude(cfg) {
 
@@ -53,7 +53,7 @@ function Attitude(cfg) {
     this.madgwick = new AHRS({
             sampleInterval: 1000 / cfg.mpu9250.sampleInterval,        // Convert to Hz
             algorithm: 'Madgwick',
-            beta: 0.4
+            beta: 0.8
         });
 
 }
@@ -144,7 +144,9 @@ Attitude.prototype.getAttitude = function () {
     // NOTE: Here we change the heading to a negative value, this goes against normal mathematical convention.
     //       But this aligns geospatial headings, (e.g. a typical compass).
     var heading = util.wrapDegrees(-util.toDegrees(hpr.heading) + this.declinationDegrees);
-    hpr.heading = headingFineTuner(heading);
+
+    // hpr.heading = headingFineTuner(heading);
+    hpr.heading = heading;
     hpr.pitch = util.toDegrees(hpr.pitch);
     hpr.roll = util.toDegrees(hpr.roll);
 
