@@ -54,9 +54,29 @@ exec 2>&1
 export AUTO_LOAD_CAPE=0
 export NODE_ENV=production
 
+#
+# Hardware specific performance improvements
+#
+
+# Set to max performance.  At the end we set this to powersave
+cpufreq-set -g performance
+
+# The simplist I/O scheduler for the Linux Kernel
+echo noop > /sys/block/mmcblk0/queue/scheduler
+
+# Don't write stuff to disk very often
+sysctl vm.swappiness=10
+
+# Do a trim on every boot
+fstrim -v /
+
+
+
 echo "### 1) Load the necessary components"
 ${NODE} ${SCRIPT_DIR}/boot/boot.js
 ${NODE} ${SCRIPT_DIR}/boot/initGPS.js
+
+
 
 #
 # These commands send data to the u-blox GPS device
@@ -110,5 +130,12 @@ sleep 5
 echo "### 4) Pinging google"
 ping -c 4 google.com
 
+
+#
+# After a while reduce our performance again
+#
+
+sleep 120
+cpufreq-set -g powersave
 
 exit 0

@@ -15,7 +15,7 @@
     "gps": "^0.2.0",
     "mpu9250": "^0.1.5",
     "node-static": "^0.7.8",
-    "octalbonescript": "^1.2.1",
+    "octalbonescript": "^1.2.2",
     "pmtk": "^0.1.2",
     "polo": "^0.8.1",
     "web-remote-control": "^1.9.6",
