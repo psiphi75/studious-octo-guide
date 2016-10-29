@@ -18,10 +18,11 @@
     "octalbonescript": "^1.2.2",
     "pmtk": "^0.1.2",
     "polo": "^0.8.1",
+    "sailboat-ai-psiphi75": "git+https://github.com/psiphi75/sailboat-ai-psiphi75.git",
+    "sailboat-utils": "git+https://github.com/psiphi75/sailboat-utils.git",
+    "serialport": "^4.0.3",
     "web-remote-control": "^1.9.6",
     "winston": "^2.2.0",
-    "wrc-controller": "^0.0.12",
-    "sailboat-utils": "git+https://github.com/psiphi75/sailboat-utils.git",
-    "sailboat-ai-psiphi75": "git+https://github.com/psiphi75/sailboat-ai-psiphi75.git"
+    "wrc-controller": "^0.0.12"
   }
 }
