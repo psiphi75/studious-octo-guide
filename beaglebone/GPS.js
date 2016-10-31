@@ -33,7 +33,7 @@ function GPS(serialPort, baudRate) {
     var gps = new gpsModule();
 
     var SerialPort = require('serialport');
-    var port = new SerialPort.SerialPort(serialPort, {
+    var port = new SerialPort(serialPort, {
         baudrate: baudRate,
         parser: SerialPort.parsers.readline('\r\n')
     });
