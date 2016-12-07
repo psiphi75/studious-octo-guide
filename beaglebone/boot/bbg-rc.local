@@ -135,7 +135,7 @@ ping -c 4 google.com
 # After a while reduce our performance again
 #
 
-sleep 120
-cpufreq-set -g powersave
+#sleep 120
+#cpufreq-set -g powersave
 
 exit 0

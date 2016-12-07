@@ -46,7 +46,7 @@ var RATE = 100;
 function OnboardVane(obs) {
 
     var aparentWindHeading = 0;
-    var pin = 'P9_33'; //t he pin to operate on
+    var pin = 'P9_33'; // the pin to operate on
     var lastBoatHeading;
     var s = 0;
     var c = 0;
@@ -65,7 +65,8 @@ function OnboardVane(obs) {
                 s = s + (Math.sin(w) - s) / RATE;
                 c = c + (Math.cos(w) - c) / RATE;
                 actualWindHeading = util.toDegrees(Math.atan2(s, c));
-                // console.log('aparentWindHeading, lastBoatHeading, w, s, c, actualWindHeading', aparentWindHeading.toFixed(3), lastBoatHeading.toFixed(3), w.toFixed(3), s.toFixed(3), c.toFixed(3), actualWindHeading.toFixed(3))
+                // console.log('raw value, aparentWindHeading, lastBoatHeading, w, s, c, actualWindHeading', value.toFixed(3),
+                //         aparentWindHeading.toFixed(3), lastBoatHeading.toFixed(3), w.toFixed(3), s.toFixed(3), c.toFixed(3), actualWindHeading.toFixed(3))
             }
         });
     }, 100);
@@ -121,15 +122,17 @@ function findValue(input) {
 /**
  * Finer grain calibration.
  *
- * [output, input]
+ * [output (degrees), input (raw value)]
  */
 var offsetMap = [
-    [0, 0.1944],
-    [90, 0.4335],
-    [180, 0.6696],
-    [-90, 0.8942],
-    [-75.55, 0],
-    [284.45, 0.901],
+    // [-25.6, 0],
+    // [0, 0.0582],
+    // [90, 0.2952],
+    // [180, 0.509],
+    // [270, 0.7367],
+    // [334.4, 0.833],
+    [0, 0],
+    [360, 0.9],
 ];
 
 // Order matters, we need input in ascending order (-180 to 180)
