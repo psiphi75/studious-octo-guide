@@ -1,4 +1,6 @@
-/*********************************************************************
+/* eslint-disable no-use-before-define */
+/* eslint-disable no-console */
+/** ******************************************************************
  *                                                                   *
  *   Copyright 2016 Simon M. Werner                                  *
  *                                                                   *
@@ -19,129 +21,114 @@
  *   specific language governing permissions and limitations         *
  *   under the License.                                              *
  *                                                                   *
- *********************************************************************/
+ ******************************************************************** */
 
 'use strict';
 
-/*******************************************************************************
+/** ****************************************************************************
  *                                                                             *
  *          Configuration settings - need to be customised to requirements     *
  *                                                                             *
- *******************************************************************************/
+ ****************************************************************************** */
 
-var cfg = require('config');
-var logger = require('./logger');
-
+const cfg = require('config');
+const util = require('sailboat-utils/util');
+const wrc = require('web-remote-control');
+const Psiphi75 = require('sailboat-ai-psiphi75');
+const logger = require('./logger');
 
 /*
  * Output config settings - we will pick these up later.
  */
-var header = cfg.util.cloneDeep(cfg);
+const header = cfg.util.cloneDeep(cfg);
 header.timestamp = new Date().getTime();
 logger.info('Starting the-whole-shebang:');
 logger.info('--- CONFIG START ---');
-logger.info('HEADER:' + JSON.stringify(header));
+logger.info(`HEADER:${JSON.stringify(header)}`);
 logger.info('--- CONFIG END ---');
 
-
-/*******************************************************************************
+/** *****************************************************************************.
  *                                                                             *
  *                           Load necessary libraries                          *
  *                                                                             *
- *******************************************************************************/
+ ****************************************************************************** */
 
-/* Set this for octalbonescript such that it does load capes automatically */
-process.env.AUTO_LOAD_CAPE = 0;
-var obs = require('octalbonescript');
-obs.loadCape('cape-universaln');
-obs.loadCape('BB-ADC');
-var util = require('sailboat-utils/util');
+/* Set this for bonescript such that it does load capes automatically */
 
-var wrc = require('web-remote-control');
-var GPSSync = require('./GPSSync');
-var gps = new GPSSync(cfg);
+const GPSSync = require('./GPSSync');
 
-var Attitude = require('./Attitude');
-var attitude = new Attitude(cfg);
+const gps = new GPSSync(cfg);
+
+const Attitude = require('./Attitude');
+
+const attitude = new Attitude(cfg);
 attitude.setDeclination(cfg.location);
 attitude.startCapture();
 
-var RoboticState = require('./RoboticState');
-var controlMode = new RoboticState(logger);
+const RoboticState = require('./RoboticState');
 
+const controlMode = RoboticState(logger);
 
-/*******************************************************************************
+// Set up the two servos.
+const Servo = require('./Servo');
+
+const servoSail = new Servo('Sail', cfg.servos.sail);
+const servoRudder = new Servo('Rudder', cfg.servos.rudder);
+
+/** *****************************************************************************.
  *                                                                             *
  *                              Awaken our robot                               *
  *                      (after checking out the course)                        *
  *                                                                             *
- *******************************************************************************/
+ ****************************************************************************** */
 
-var Psiphi75 = require('sailboat-ai-psiphi75');
-var robot;
+let robot;
 
-var contestManager = wrc.createController({
+const contestManager = wrc.createController({
     proxyUrl: 'localhost',
     channel: 'ContestManager',
     udp4: false,
-    tcp: true
+    tcp: true,
 });
 
-contestManager.once('register', function() {
-
+contestManager.once('register', () => {
     //
     // Once registered send the request for a contest
     //
-    var msgObj = cfg.contest;
+    const msgObj = cfg.contest;
     msgObj.action = 'request-contest';
     contestManager.command(msgObj);
-
 });
 
-contestManager.on('status', function(msgObj) {
-    robot = new Psiphi75();
-    msgObj.contest.saveState = function(wpState) {
+contestManager.on('status', msgObj => {
+    robot = Psiphi75();
+    msgObj.contest.saveState = wpState => {
         contestManager.command({
             action: 'update-waypoint-state',
-            state: wpState
+            state: wpState,
         });
     };
     robot.init(msgObj.contest);
 });
 
-
-/*******************************************************************************
+/** *****************************************************************************.
  *                                                                             *
  *                           Sensor collection code                            *
  *                                                                             *
- *******************************************************************************/
+ ****************************************************************************** */
 
-//
-// Sends data to the controller
-//
-function sendData() {
-    var state = getState();
-    manualControl.status(state); // We always send the updated state
-    if (controlMode.isRobotic && robot) {
-
-        try {
-            var command = robot.ai(state);
-        } catch (ex) {
-            console.error('ERROR: Running AI: ', ex);
-        }
-        if (command && command.action === 'move') {
-            actionMove(command);
-        }
-    }
-    logger.info('STATUS:' + JSON.stringify(state));
-}
 // Collect the data into a nice object ready for sending
-var isFirstGPS = true;
-var OnboardVane = require('./OnboardVane');
-var onboardVane = new OnboardVane(obs);
-function getState() {
+let isFirstGPS = true;
 
-    var gpsPosition = gps.getPosition();
+// dummy function for now... until registered
+let manualControl = {
+    status(_) {
+        return _;
+    },
+};
+
+function getState() {
+    const gpsPosition = gps.getPosition();
     if (util.isValidGPS(gpsPosition)) {
         logger.wrscLog(util.wrscGPSlogger(gpsPosition));
         if (isFirstGPS) {
@@ -150,144 +137,86 @@ function getState() {
         }
     }
 
-    var attitudeValues = attitude.getAttitude();
+    const attitudeValues = attitude.getAttitude();
 
-    // var wind;
-    // if (windvane) {
-    //     wind = windvane.getStatus();
-    //     wind = {
-    //         speed: 4,
-    //         heading: -54
-    //     };
-    // }
+    let wind;
+    if (windvane) {
+        // wind = windvane.getStatus();
+        wind = {
+            speed: 4,
+            heading: -54,
+        };
+    }
 
     return {
-           dt: cfg.webRemoteControl.updateInterval,
-           isRobotic: controlMode.isRobotic,
-           boat: {
-                attitude: attitudeValues,
-                gps: gpsPosition,
-                apparentWind: onboardVane.getStatus(0),
-                servos: {
-                    sail: servoSail.getLastValue(),
-                    rudder: servoRudder.getLastValue()
-                }
-          },
-          environment: {
-               wind: onboardVane.getStatus(attitudeValues.heading)
-          }
+        dt: cfg.webRemoteControl.updateInterval,
+        isRobotic: controlMode.isRobotic,
+        boat: {
+            attitude: attitudeValues,
+            gps: gpsPosition,
+            // apparentWind: wind, // FIXME: Apparent wind should be different
+            servos: {
+                sail: servoSail.getLastValue(),
+                rudder: servoRudder.getLastValue(),
+            },
+        },
+        environment: {
+            wind,
+        },
     };
-
 }
 
+//
+// Sends data to the controller
+//
+function sendData() {
+    const state = getState();
+    let command;
+    manualControl.status(state); // We always send the updated state
+    if (controlMode.isRobotic && robot) {
+        try {
+            command = robot.ai(state);
+        } catch (ex) {
+            console.error('ERROR: Running AI: ', ex);
+        }
+        if (command && command.action === 'move') {
+            actionMove(command);
+        }
+    }
+    logger.info(`STATUS:${JSON.stringify(state)}`);
+}
 
-/*******************************************************************************
+/* ****************************************************************************
  *                                                                             *
  *                             Communication Code                              *
  *                                                                             *
  *         - Listen to commands from the controller.                           *
  *         - Send status updates (sensor data) to the controller / listeners   *
  *                                                                             *
- *******************************************************************************/
+ ****************************************************************************** */
 
-// Set up the two servos.
-var Servo = require('./Servo');
-var servoSail = new Servo('Sail', obs, cfg.servos.sail, function () {});
-var servoRudder = new Servo('Rudder', obs, cfg.servos.rudder, function () {});
-
-var wrcOptions = { proxyUrl: cfg.webRemoteControl.url,
-                   channel: cfg.webRemoteControl.channel,
-                   udp4: false,
-                   tcp: true,
-                   log: logger.debug };
+const wrcOptions = {
+    proxyUrl: cfg.webRemoteControl.url,
+    channel: cfg.webRemoteControl.channel,
+    udp4: false,
+    tcp: true,
+    log: logger.debug,
+};
 
 logger.debug(wrcOptions);
-// var windvane;
-if (cfg.webRemoteControl.useNetworkDiscovery) {
-    var DISCOVERY_PROXY_NAME = 'web-remote-control-proxy';
-    var polo = require('polo');
-    var apps = polo();
-    apps.put({
-        name: 'sailboat',
-        port: 31234
-    });
-
-    apps.on('up', function (name) {
-        if (name === DISCOVERY_PROXY_NAME) {
-            wrcOptions.proxyUrl = apps.get(name).host;
-            initToyToProxyCommunication();
-            // var WindvaneComms = require('./WindvaneComms');
-            // windvane = new WindvaneComms(wrcOptions, logger);
-        }
-    });
-
-    apps.on('error', function (err) {
-        logger.error('POLO: ' + err);
-    });
-
-} else {
-    initToyToProxyCommunication();
-}
-
-var manualControl = { status: function() {} };  // dummy function for now... until registered
-function initToyToProxyCommunication() {
-
-    // Don't initialise twice
-    if (manualControl && manualControl.ping) return;
-
-    manualControl = wrc.createToy(wrcOptions);
-
-    // Should wait until we are registered before doing anything else
-    manualControl.on('register', handleRegistered);
-
-    // Ping the proxy and get the response time (in milliseconds)
-    manualControl.ping(handlePing);
-
-    // Listens to commands from the controller
-    manualControl.on('command', handleManualCommand);
-
-    manualControl.on('error', function(err) {
-        logger.error(err);
-    });
-}
-
-function handleManualCommand(command) {
-
-    if (!command) {
-        logger.error('ERROR - invalid command: ' + JSON.stringify(command));
-        return;
-    }
-
-    switch (command.action) {
-        case 'note':
-            actionOnNote(command);
-            break;
-        case 'move':
-            if (controlMode.isManual) {
-                actionMove(command);
-            }
-            break;
-        case 'mode':
-            controlMode.set(command.mode);
-            break;
-        default:
-            logger.error('ERROR - invalid command action: ' + JSON.stringify(command));
-    }
-
-}
+let windvane;
 
 function actionOnNote(command) {
-
-    logger.info('NOTE:' + JSON.stringify(command.note));
+    logger.info(`NOTE:${JSON.stringify(command.note)}`);
     switch (command.note) {
         case 'Shutdown':
-            require('child_process').exec('/sbin/shutdown --poweroff now', function (msg) {
-                logger.info('Shutting down: ' + msg);
+            require('child_process').exec('/sbin/shutdown --poweroff now', msg => {
+                logger.info(`Shutting down: ${msg}`);
             });
             break;
         case 'Reboot':
-            require('child_process').exec('/sbin/shutdown --reboot now', function (msg) {
-                logger.info('Rebooting: ' + msg);
+            require('child_process').exec('/sbin/shutdown --reboot now', msg => {
+                logger.info(`Rebooting: ${msg}`);
             });
             break;
         case 'RestartProcess':
@@ -311,18 +240,85 @@ function handleRegistered() {
     logger.info('COMMS:Registered with proxy server:', cfg.webRemoteControl.url);
 }
 
+function handleManualCommand(command) {
+    if (!command) {
+        logger.error(`ERROR - invalid command: ${JSON.stringify(command)}`);
+        return;
+    }
+
+    switch (command.action) {
+        case 'note':
+            actionOnNote(command);
+            break;
+        case 'move':
+            if (controlMode.isManual) {
+                actionMove(command);
+            }
+            break;
+        case 'mode':
+            controlMode.set(command.mode);
+            break;
+        default:
+            logger.error(`ERROR - invalid command action: ${JSON.stringify(command)}`);
+    }
+}
+
+function initToyToProxyCommunication() {
+    // Don't initialise twice
+    if (manualControl && manualControl.ping) return;
+
+    manualControl = wrc.createToy(wrcOptions);
+
+    // Should wait until we are registered before doing anything else
+    manualControl.on('register', handleRegistered);
+
+    // Ping the proxy and get the response time (in milliseconds)
+    manualControl.ping(handlePing);
+
+    // Listens to commands from the controller
+    manualControl.on('command', handleManualCommand);
+
+    manualControl.on('error', err => {
+        logger.error(err);
+    });
+}
+
 // This function gets called when we receive a 'command' from the controller.
 // It will move the servos respectively.
 function actionMove(command) {
-    servoSail.set(command.servoSail);
-    servoRudder.set(command.servoRudder);
+    servoSail.setValue(command.servoSail);
+    servoRudder.setValue(command.servoRudder);
 }
 
+if (cfg.webRemoteControl.useNetworkDiscovery) {
+    const DISCOVERY_PROXY_NAME = 'web-remote-control-proxy';
+    const polo = require('polo');
+    const apps = polo();
+    apps.put({
+        name: 'sailboat',
+        port: 31234,
+    });
 
-/********************************************************************************************
+    apps.on('up', name => {
+        if (name === DISCOVERY_PROXY_NAME) {
+            wrcOptions.proxyUrl = apps.get(name).host;
+            initToyToProxyCommunication();
+            const WindvaneComms = require('./WindvaneComms');
+            windvane = new WindvaneComms(wrcOptions, logger);
+        }
+    });
+
+    apps.on('error', err => {
+        logger.error(`POLO: ${err}`);
+    });
+} else {
+    initToyToProxyCommunication();
+}
+
+/** ******************************************************************************************.
  *
  *                                      Let the show begin!
  *
- ********************************************************************************************/
+ ******************************************************************************************* */
 
 setInterval(sendData, cfg.webRemoteControl.updateInterval);

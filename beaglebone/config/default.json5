@@ -1,8 +1,7 @@
 {
-
-    "contest": {
-        type: "fleet-race",
-        location: "auckland",
+    contest: {
+        type: 'fleet-race',
+        location: 'auckland',
         realtime: true,
         // windSpeed: 5,
         // windHeading: 180
@@ -11,72 +10,61 @@
     /*
      * Define where the remote proxy will be.
      */
-    "webRemoteControl": {
-        "url": "localhost", // The actual URL of the proxy
-        "channel": "Perfectly Yummy Antitau", // The channel we operate on
-        "updateInterval": 50, // How often we send a status update over the network (milliseconds)
-        "useNetworkDiscovery": true // Default to network discovery
+    webRemoteControl: {
+        url: 'localhost', // The actual URL of the proxy
+        channel: 'Perfectly Yummy Antitau', // The channel we operate on
+        updateInterval: 50, // How often we send a status update over the network (milliseconds)
+        useNetworkDiscovery: true, // Default to network discovery
     },
 
     /*
      * Define our location - required for figuring out true north.
      */
-    "location": {
-        "latitude": -36.8485,
-        "longitude": 174.7633
+    location: {
+        latitude: -36.8485,
+        longitude: 174.7633,
     },
 
     /*
      * Which pins the servos are linked to.
      */
-    "servos": {
-        "sail": {
-            "pin": "P8_13",
-            "scalar": {
-                "min": 0.45,
-                "center": 0.05,
-                "max": -0.33
-            }
+    servos: {
+        sail: {
+            channel: 0,
+            scalar: {
+                min: 0.45,
+                center: 0.05,
+                max: -0.33,
+            },
         },
-        "rudder": {
-            "pin": "P8_19",
-            "scalar": {
-                "min": 0,
-                "center": 0.26,
-                "max": 0.55
-            }
-        }
-    },
-
-    /*
-     * Modem details
-     */
-    "modem": {
-        "serialport": "/dev/ttyO1"
-    },
-
-    "gps": {
-        "1": { // sim28
-            "serialport": "/dev/ttyO2",
-            "baudrate": 9600,
-            "updateRate": 5 // Update rate in Hz
-        },
-        "2": { // u-blox
-            "serialport": "/dev/ttyO4",
-            "baudrate": 9600,
-            "updateRate": 5 // Update rate in Hz
+        rudder: {
+            channel: 1,
+            scalar: {
+                min: 0,
+                center: 0.26,
+                max: 0.55,
+            },
         },
     },
 
-    "mpu9250": {
+    gps: {
+        '1': {
+            // u-blox
+            serialport: '/dev/ttyS2',
+            baudrate: 38400,
+            updateRate: 5, // Update rate in Hz
+        },
+    },
+
+    mpu9250: {
         /*
          * How often we check the sensor samples (milliseconds).
          */
-        "sampleInterval": 10,
-        "sampleIntervalMagnetometer": 10,
+        sampleInterval: 10,
+        sampleIntervalMagnetometer: 10,
 
-        "options": {
-            device: "/dev/i2c-2",
+        options: {
+            device: '/dev/i2c-2',
 
             // Enable/Disable magnetometer data (default false)
             UpMagneto: true,
@@ -104,49 +92,25 @@
 
             // These values were generated using calibrate_mag.js - you will want to create your own.
             magCalibration: {
-                min: {
-                    x: -71.953125,
-                    y: -25.4296875,
-                    z: -156.62109375
-                },
-                max: {
-                    x: 106.73046875,
-                    y: 161.0546875,
-                    z: 30.1640625
-                },
-                offset: {
-                    x: 17.388671875,
-                    y: 67.8125,
-                    z: -63.228515625
-                },
-                scale: {
-                    x: 1.5444986118094572,
-                    y: 1.4798910766652702,
-                    z: 1.4775079992471296
-                }
+                min: { x: -58.1875, y: -35.625, z: -92.70703125 },
+                max: { x: 79.5625, y: 109.25, z: 49.21484375 },
+                offset: { x: 10.6875, y: 36.8125, z: -21.74609375 },
+                scale: { x: 1.5410049909255898, y: 1.4652178602243313, z: 1.4957062644500716 },
             },
 
             // These values were generated using calibrate_gyro.js - you will want to create your own.
             // NOTE: These are temperature dependent.
-            gyroBiasOffset: {
-                x: 0.3217709923664121,
-                y: -1.1915877862595428,
-                z: -0.08352671755725186
-            },
+            gyroBiasOffset: { x: 0.7966259541984736, y: -0.6120763358778628, z: 0.21993893129770983 },
 
             // These values were generated using calibrate_accel.js - you will want to create your own.
             accelCalibration: {
-                offset: {
-                    x: 0.013922932942708334,
-                    y: 0.0071199544270833335,
-                    z: -0.009103597005208333
-                },
+                offset: { x: 0.005778401692708333, y: 0.022632242838541667, z: -0.06744730631510416 },
                 scale: {
-                    x: [-0.9887548828125, 1.01349365234375],
-                    y: [-0.9904020182291666, 1.0107552083333333],
-                    z: [-1.0237027994791668, 1.0072054036458333]
-                }
-            }
-        }
-    }
+                    x: [-1.0072184244791667, 0.9923136393229167],
+                    y: [-0.9860587565104166, 1.0151546223958334],
+                    z: [-1.0705379231770833, 0.9366227213541667],
+                },
+            },
+        },
+    },
 }

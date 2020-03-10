@@ -22,66 +22,12 @@
 #                                                                   #
 #####################################################################
 
-#
-# This is a BASH shell script that will:
-#   1) Run the node boot.js boot loader which will:
-#       a) Load the universal cape.
-#       b) Enabled serial ports (for GPS and GPRS Modem).
-#   2) Enable the network
-#   3) Start our connection to the proxy server
-#
-
-NODE=/usr/bin/node
-LOG_DIR=/root/logs
-SCRIPT_DIR=/root/studious-octo-guide/beaglebone
-export NODE_CONFIG_DIR=${SCRIPT_DIR}/config
-
-BOOT_LOG=${LOG_DIR}/beaglebone-boot.log
-LOG=${LOG_DIR}/beaglebone.log
-ERROR=${LOG_DIR}/beaglebone-error.log
-
-# Backup the existing logs
-DATETIME=`date +%Y-%m-%d-%H:%M:%S`
-mv ${LOG} ${LOG}-${DATETIME}
-mv ${ERROR} ${ERROR}-${DATETIME}
-
-# The next line enhances the logging.  Uncomment for debug level logs
-export DEBUG=1
-
-exec > ${BOOT_LOG}
-exec 2>&1
-
-export AUTO_LOAD_CAPE=0
-export NODE_ENV=production
-
-#
-# Hardware specific performance improvements
-#
-
-# Set to max performance.  At the end we set this to powersave
-cpufreq-set -g performance
-
-# The simplist I/O scheduler for the Linux Kernel
-echo noop > /sys/block/mmcblk0/queue/scheduler
-
-# Don't write stuff to disk very often
-sysctl vm.swappiness=10
-
-# Do a trim on every boot
-fstrim -v /
-
-
-
-echo "### 1) Load the necessary components"
-${NODE} ${SCRIPT_DIR}/boot/boot.js
-${NODE} ${SCRIPT_DIR}/boot/initGPS.js
-
-
 
 #
 # These commands send data to the u-blox GPS device
 #
-UBOX_GPS=/dev/ttyO4
+UBOX_GPS=/dev/ttyS2
+sudo /bin/setserial ${UBOX_GPS} -a baud_base 38400
 
 # GxGSA off
 echo -n -e \\xB5\\x62\\x06\\x01\\x08\\x00\\xF0\\x02\\x00\\x00\\x00\\x00\\x00\\x01\\x02\\x32\\x10\\x13 > ${UBOX_GPS}
@@ -105,37 +51,3 @@ sleep 1
 
 # NMEA rate: 5Hz
 echo -n -e \\xB5\\x62\\x06\\x08\\x06\\x00\\xC8\\x00\\x01\\x00\\x01\\x00\\xDE\\x6A\\x10\\x13 > ${UBOX_GPS}
-sleep 1
-
-
-# echo "### 2) Enable the network (PPP)"
-# pon
-# sleep 10
-echo "### 2) Start the proxy"
-${SCRIPT_DIR}/../startWRC.sh
-
-
-echo "### 3) Start the device afer waiting for a bit"
-cd ${SCRIPT_DIR}
-/usr/bin/forever start  \
-    --append            \
-    --watchDirectory ${SCRIPT_DIR}      \
-    -l $LOG             \
-    -e $ERROR           \
-    --uid "tws"         \
-     index.js
-sleep 5
-
-
-echo "### 4) Pinging google"
-ping -c 4 google.com
-
-
-#
-# After a while reduce our performance again
-#
-
-#sleep 120
-#cpufreq-set -g powersave
-
-exit 0

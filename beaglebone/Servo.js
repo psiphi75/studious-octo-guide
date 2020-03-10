@@ -1,4 +1,4 @@
-/*********************************************************************
+/* *******************************************************************
  *                                                                   *
  *   Copyright 2016 Simon M. Werner                                  *
  *                                                                   *
@@ -19,125 +19,113 @@
  *   specific language governing permissions and limitations         *
  *   under the License.                                              *
  *                                                                   *
- *********************************************************************/
+ ******************************************************************* */
 
 'use strict';
 
+// #define GPIO_POWER_PIN	2,16	//gpio2.16 P8.36
+
+/* Using roboticscape
+const rc = require('roboticscape');
+rc.initialize();
+rc.servo('ENABLE')
+rc.servo('POWER_RAIL_ENABLE')
+
+rc.servo(0,1.0)  // Where param1 = servo # (0 .. 8) and param2 = servo amount (-1.5 .. 1.5)
+
+code can be found here:
+https://github.com/jadonk/node-roboticscape/blob/769167ba44471f77736dc914d3f820a4acba3a26/rc-node-bindings.cc#L333-L369
+
+*/
+
+const rc = require('roboticscape');
+
+const HOLD_SERVO_INTERVAL = 100;
+let initDone = false;
+(function() {
+    if (initDone) return;
+    initDone = true;
+    rc.initialize();
+    rc.servo('ENABLE');
+    rc.servo('POWER_RAIL_ENABLE');
+    console.log('Initialised Robotics Cape');
+})();
+
 /**
  * Initialise the servo / PWM for the BeagleBone Green / Black.
- * @param {string}   name     The name of the servo.
- * @param {object}   obs      The octalbonescript object.
- * @param {object}   cfg      The config {min, center, max, pin: The BeagleBone GPIO (e.g. 'P9_16')}.
- * @param {Function} callback The callbak for when the pin is initalised.
+ *
+ * @param {string} name - The name of the servo.
+ * @param {object} cfg - The config {min, center, max, channel}.
  */
-function Servo(name, obs, cfg, callback) {
-
-    if (typeof obs !== 'object' || typeof obs.pinMode !== 'function') {
-        callback(null, 'Servo: Error: Expecting octalbonescript to be defined');
-    }
+function Servo(name, cfg) {
     this.name = name;
-    this.obs = obs;
-    this.pin = cfg.pin;
+    this.channel = cfg.channel;
     this.scalar = {
         min: cfg.scalar.min,
         center: cfg.scalar.center,
-        max: cfg.scalar.max
+        max: cfg.scalar.max,
     };
-    this.dutyMin = 0.03;
-    this.currentPosition = 0;
-    this.up = false;
-    this.value = 0;
 
-    var self = this;
-    this.obs.pinMode(this.pin, this.obs.OUTPUT, function(err, data) {
-        if (!err) {
-            self.up = true;
-        }
-        callback(err, data);
-    });
+    // Start the servo in the middle
+    this.value = 0.0;
+    console.log(`Servo ${this.name}: ${JSON.stringify(this.scalar)} -> ${this.value}`);
+    this.setValue(0.0);
+    this.intervalHandle = undefined;
 }
-
 
 /**
  * Set the value of a servo.
- * @param {number}   value    The value to set the servo to.
+ *
+ * @param {number} unscaledValue - The value to set the servo to.
  */
-Servo.prototype.set = function (value) {
-
-    this.value = value;
-    var scaledValue = this.scale(value);
-
-    if (!this.up) {
-        console.error('Servo.set(): This servo is currently not ready: ' + this.pin);
-        return;
+Servo.prototype.setValue = function(unscaledValue) {
+    // Keep the servo in position
+    //   - This is a bit of a workaround, idealy the servo will hold it's position, but
+    //     roboticscape is a bit limited.
+    if (!this.intervalHandle) {
+        this.intervalHandle = setInterval(() => {
+            rc.servo(this.channel, this.value);
+            console.log(`Servo ${this.name} (${this.channel}): ${unscaledValue} -> ${this.value}`);
+        }, HOLD_SERVO_INTERVAL);
     }
 
-    console.log('Servo ' + this.name, value, scaledValue, adjustPWM(scaledValue));
-
-    var pwmWriteValue = adjustPWM(scaledValue);
-    this.obs.analogWrite(this.pin, pwmWriteValue, 60, function(err) {
-        if (err) {
-            console.error('Servo: There was an error with a servo: ', pwmWriteValue, err);
-        }
-    });
-
-    //
-    // This is the default adjust function for the BeagleBone for PWM.
-    //
-    function adjustPWM(val) {
-        val += 1.01;
-        val *= 0.075;
-        return val;
-    }
+    this.value = scale(unscaledValue, this.scalar);
 };
 
-Servo.prototype.getLastValue = function () {
+Servo.prototype.getLastValue = function() {
     return this.value;
 };
 
-
 /**
  * Relaxes the servo - such that its essentially off.
- * @param  {Function} callback Notification for when we are done.
  */
-Servo.prototype.relax = function (callback) {
-
-    if (!this.up) {
-        callback(null, 'This servo is currently not ready: ' + this.pin);
-    }
-
-    if (!callback) {
-        callback = function(err) {
-            if (err) console.error('Servo: There was an error with a servo:', err);
-        };
-    }
-
-    this.obs.pinMode(this.pin, this.obs.OUTPUT, callback);
+Servo.prototype.relax = function() {
+    clearInterval(this.intervalHandle);
+    this.intervalHandle = undefined;
 };
-
 
 /**
  * Scale the value.  Where -1 => min, 0 => center, 1 => max.
- * @return  {number} The scaled value.
+ *
+ * @param value {number} - The input value.
+ * @returns {number} - The scaled value - in the units of what the servo wants.
  */
-Servo.prototype.scale = function (value) {
-
+function scale(value, scalar) {
     if (value < -1) value = -1;
     if (value > 1) value = 1;
 
     //
     // Do the scaling
     //
-    var m;
+    let m;
     if (value >= 0) {
-        m = this.scalar.max - this.scalar.center;
+        m = scalar.max - scalar.center;
     } else {
-        m = this.scalar.center - this.scalar.min;
+        m = scalar.center - scalar.min;
     }
-    value = value * m + this.scalar.center;
+    value = value * m + scalar.center;
 
     return value;
-
-};
+}
 
 module.exports = Servo;

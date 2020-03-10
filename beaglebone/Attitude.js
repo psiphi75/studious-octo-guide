@@ -1,4 +1,5 @@
-/*********************************************************************
+/* eslint-disable no-use-before-define */
+/** *******************************************************************
  *                                                                   *
  *   Copyright 2016 Simon M. Werner                                  *
  *                                                                   *
@@ -19,18 +20,16 @@
  *   specific language governing permissions and limitations         *
  *   under the License.                                              *
  *                                                                   *
- *********************************************************************/
+ ******************************************************************** */
 
 'use strict';
 
-var AHRS = require('ahrs');
-var Mpu9250 = require('mpu9250');
-var util = require('sailboat-utils/util');
-var geomagnetism = require('geomagnetism');
-// var headingFineTuner = require('./OffsetMap');
+const AHRS = require('ahrs');
+const Mpu9250 = require('mpu9250');
+const util = require('sailboat-utils/util');
+const geomagnetism = require('geomagnetism');
 
 function Attitude(cfg) {
-
     this.sensorSampleIntervalSeconds = cfg.mpu9250.sampleInterval / 1000;
     this.magSampleInterval = cfg.mpu9250.sampleIntervalMagnetometer;
     this.lastMagReadTime = 0;
@@ -51,11 +50,10 @@ function Attitude(cfg) {
     // Make sense of the Gyro/Compass/Accerometer data
     //
     this.madgwick = new AHRS({
-            sampleInterval: 1000 / cfg.mpu9250.sampleInterval,        // Convert to Hz
-            algorithm: 'Madgwick',
-            beta: 0.8
-        });
-
+        sampleInterval: 1000 / cfg.mpu9250.sampleInterval, // Convert to Hz
+        algorithm: 'Madgwick',
+        beta: 0.8,
+    });
 }
 
 /**
@@ -64,88 +62,91 @@ function Attitude(cfg) {
  *
  * This should be called every time there is a significant update in the lat/long.
  *
- * @param  {object} latLongObj  Object with 'latitude' and 'longitude' in degrees.
+ * @param  {object} latLongObj -  Object with 'latitude' and 'longitude' in degrees.
  */
 Attitude.prototype.setDeclination = function(latLongObj) {
-    var declinationDeg = 0;
+    let declinationDeg = 0;
     if (latLongObj.latitude && latLongObj.longitude) {
-        var geo = geomagnetism.model().point([latLongObj.latitude, latLongObj.longitude]);
+        const geo = geomagnetism.model().point([latLongObj.latitude, latLongObj.longitude]);
         declinationDeg = geo.decl;
     }
     this.declinationDegrees = declinationDeg;
 };
 
-Attitude.prototype.startCapture = function() {
+Attitude.prototype.startCapture = function startCapture() {
     this.captureIntervalHandle = setInterval(this.capture.bind(this), this.sensorSamplePeriod);
 };
 
-Attitude.prototype.stopCapture = function() {
+Attitude.prototype.stopCapture = function stopCapture() {
     clearInterval(this.captureIntervalHandle);
 };
 
 /*
-* This will asyncronously retreive the sensor data (gyro, accel and compass).
-*/
-Attitude.prototype.capture = function() {
-
+ * This will asyncronously retreive the sensor data (gyro, accel and compass).
+ */
+Attitude.prototype.capture = function capture() {
     // Don't capture the magnetometer every sample, only once every magSampleInterval.
-    var sensorDataArray;
-    var startTime = new Date().getTime();
-    sensorDataArray = this.imu.getMotion9();
-    var endTime = new Date().getTime();
-    var sensorData = {
+    const startTime = new Date().getTime();
+    const sensorDataArray = this.imu.getMotion9();
+    const endTime = new Date().getTime();
+    const sensorData = {
         timestamp: endTime,
-        elapsedTime: endTime - startTime
+        elapsedTime: endTime - startTime,
     };
 
     // Do transformations to get the sensors aligned with the the body.  Accel and gyro are on the same axis.
     // Magnetometer is (strangely) using a different axis.
     sensorData.accel = transformAccelGyro({
-                                x: sensorDataArray[0],
-                                y: sensorDataArray[1],
-                                z: sensorDataArray[2]
-                            });
+        x: sensorDataArray[0],
+        y: sensorDataArray[1],
+        z: sensorDataArray[2],
+    });
 
     sensorData.gyro = transformAccelGyro({
-                                x: util.toRadians(sensorDataArray[3]),
-                                y: util.toRadians(sensorDataArray[4]),
-                                z: util.toRadians(sensorDataArray[5])
-                            });
-
+        x: util.toRadians(sensorDataArray[3]),
+        y: util.toRadians(sensorDataArray[4]),
+        z: util.toRadians(sensorDataArray[5]),
+    });
 
     // Only read mag data if it's available
     if (sensorDataArray.length > 6) {
         sensorData.compass = transformMag({
             x: sensorDataArray[6],
             y: sensorDataArray[7],
-            z: sensorDataArray[8]
+            z: sensorDataArray[8],
         });
     } else {
         sensorData.compass = {
             x: 0,
             y: 0,
-            z: 0
+            z: 0,
         };
     }
 
-    this.madgwick.update(sensorData.gyro.x, sensorData.gyro.y, sensorData.gyro.z,
-                         sensorData.accel.x, sensorData.accel.y, sensorData.accel.z,
-                         sensorData.compass.x, sensorData.compass.y, sensorData.compass.z,
-                         this.sensorSampleIntervalSeconds);
+    this.madgwick.update(
+        sensorData.gyro.x,
+        sensorData.gyro.y,
+        sensorData.gyro.z,
+        sensorData.accel.x,
+        sensorData.accel.y,
+        sensorData.accel.z,
+        sensorData.compass.x,
+        sensorData.compass.y,
+        sensorData.compass.z,
+        this.sensorSampleIntervalSeconds
+    );
 };
 
-Attitude.prototype.getAttitude = function () {
-
+Attitude.prototype.getAttitude = function getAttitude() {
     //
     // Add heading, pitch and roll
     //
-    var hpr = this.madgwick.getEulerAngles();
+    const hpr = this.madgwick.getEulerAngles();
 
     // NOTE: Here we change the heading to a negative value, this goes against normal mathematical convention.
     //       But this aligns geospatial headings, (e.g. a typical compass).
-    var heading = util.wrapDegrees(-util.toDegrees(hpr.heading) + this.declinationDegrees);
+    const heading = util.wrapDegrees(-util.toDegrees(hpr.heading) + this.declinationDegrees);
 
-    // hpr.heading = headingFineTuner(heading);
     hpr.heading = heading;
     hpr.pitch = util.toDegrees(hpr.pitch);
     hpr.roll = util.toDegrees(hpr.roll);
@@ -157,27 +158,29 @@ Attitude.prototype.getAttitude = function () {
  * Transformation:
  *  - Rotate around Z axis 180 degrees
  *  - Rotate around X axis -90 degrees
- * @param  {object} s {x,y,z} sensor
- * @return {object}   {x,y,z} transformed
+ *
+ * @param  {object} s - {x,y,z} sensor
+ * @returns {object}   {x,y,z} transformed
  */
 function transformAccelGyro(s) {
     return {
-        x: -s.x,
+        x: -s.y,
         y: -s.z,
-        z: -s.y
+        z: s.x,
     };
 }
 
 /**
  * Transformation: to get magnetometer aligned
- * @param  {object} s {x,y,z} sensor
- * @return {object}   {x,y,z} transformed
+ *
+ * @param  {object} s - {x,y,z} sensor
+ * @returns {object}   {x,y,z} transformed
  */
 function transformMag(s) {
     return {
-        x: -s.y,
+        x: -s.x,
         y: s.z,
-        z: -s.x
+        z: s.y,
     };
 }
 

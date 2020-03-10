@@ -1,4 +1,4 @@
-/*********************************************************************
+/** *******************************************************************.
  *                                                                   *
  *   Copyright 2016 Simon M. Werner                                  *
  *                                                                   *
@@ -19,38 +19,39 @@
  *   specific language governing permissions and limitations         *
  *   under the License.                                              *
  *                                                                   *
- *********************************************************************/
+ ******************************************************************** */
 
 'use strict';
 
-var winston = require('winston');
-var logger = new (winston.Logger)({
-  transports: [
-    new (winston.transports.Console)({
-      timestamp: function() {
-        return Date.now();
-      },
-      formatter: function(options) {
-        // Return string will be passed to logger.
-        var result = '';
-        result += options.timestamp() + ' ';
-        result += options.level.toUpperCase() + ' ';
-        if (undefined !== options.message) {
-            result += options.message;
-        }
-        if (options.meta && Object.keys(options.meta).length) {
-            result += '\t' + JSON.stringify(options.meta);
-        }
-        return result;
-      }
-    })
-  ]
+const winston = require('winston');
+
+const logger = new winston.Logger({
+    transports: [
+        new winston.transports.Console({
+            timestamp: function() {
+                return Date.now();
+            },
+            formatter(options) {
+                // Return string will be passed to logger.
+                let result = '';
+                result += `${options.timestamp()} `;
+                result += `${options.level.toUpperCase()} `;
+                if (undefined !== options.message) {
+                    result += options.message;
+                }
+                if (options.meta && Object.keys(options.meta).length) {
+                    result += `\t${JSON.stringify(options.meta)}`;
+                }
+                return result;
+            },
+        }),
+    ],
 });
 
-var fs = require('fs');
-logger.wrscLog = function(wrscStr) {
+const fs = require('fs');
 
-    fs.appendFile('/root/logs/wrsc.log', wrscStr + '\n', function (err) {
+logger.wrscLog = function wrscLog(wrscStr) {
+    fs.appendFile('/home/debian/logs/wrsc.log', `${wrscStr}\n`, err => {
         if (err) {
             logger.error('logger.wrscLog()', err);
         }

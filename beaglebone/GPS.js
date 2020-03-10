@@ -1,4 +1,6 @@
-/*********************************************************************
+/* eslint-disable no-console */
+/* eslint-disable no-use-before-define */
+/** ******************************************************************
  *                                                                   *
  *   Copyright 2016 Simon M. Werner                                  *
  *                                                                   *
@@ -19,23 +21,22 @@
  *   specific language governing permissions and limitations         *
  *   under the License.                                              *
  *                                                                   *
- *********************************************************************/
+ ******************************************************************* */
 
 'use strict';
 
-var EventEmitter = require('events').EventEmitter;
-var util = require('util');
+const { EventEmitter } = require('events');
+const util = require('util');
+const SerialPort = require('serialport');
+const GpsModule = require('gps');
 
 function GPS(serialPort, baudRate) {
+    const self = this;
+    const gps = new GpsModule();
 
-    var self = this;
-    var gpsModule = require('gps');
-    var gps = new gpsModule();
-
-    var SerialPort = require('serialport');
-    var port = new SerialPort(serialPort, {
+    const port = new SerialPort(serialPort, {
         baudrate: baudRate,
-        parser: SerialPort.parsers.readline('\r\n')
+        parser: SerialPort.parsers.readline('\r\n'),
     });
 
     this.speedData = null;
@@ -44,7 +45,7 @@ function GPS(serialPort, baudRate) {
     //
     // Listen to incoming data requests
     //
-    gps.on('data', function(data) {
+    gps.on('data', data => {
         if (data.lat === null || (data.lat === 0 && data.lon === 0)) {
             return;
         }
@@ -59,10 +60,10 @@ function GPS(serialPort, baudRate) {
     //
     // Listen to the serial port and forward to the GPS.
     //
-    port.on('data', function(data) {
-        console.log('DEBUG GPS:', serialPort, data);
+    port.on('data', line => {
+        console.log('DEBUG GPS:', serialPort, line);
         try {
-            gps.update(data);
+            gps.update(line);
         } catch (err) {
             console.error('GPS: There was an error: ', err);
         }
@@ -73,9 +74,9 @@ function GPS(serialPort, baudRate) {
     //
     function handleSpeedData(data) {
         self.speedData = {
-            time: data.time.getTime(),  // convert to parsable time in milliseconds
-            speed: convert_km_per_hour_to_meters_per_second(data.speed),  // convert from km/h to m/s
-            direction: data.track       // Degrees
+            time: data.time.getTime(), // convert to parsable time in milliseconds
+            speed: convertKmPerHour2MetersPerSecond(data.speed), // convert from km/h to m/s
+            direction: data.track, // Degrees
         };
         self.emit('speed', self.speedData);
     }
@@ -84,7 +85,6 @@ function GPS(serialPort, baudRate) {
     // Handle valid GPS position updates
     //
     function handlePositionData(data) {
-
         //
         // Set out position information
         //
@@ -92,33 +92,31 @@ function GPS(serialPort, baudRate) {
             time: data.time.getTime(), // convert to parsable time in milliseconds
             latitude: data.lat,
             longitude: data.lon,
-            altitude: data.alt,         // Meters
+            altitude: data.alt, // Meters
             quality: data.quality,
             hdop: data.hdop,
         };
+
         self.emit('position', self.positionData);
         // console.log('DEBUG GPS:', serialPort, 'emitted "position": ', JSON.stringify(self.positionData));
-
     }
 
     EventEmitter.call(this);
-
 }
 util.inherits(GPS, EventEmitter);
 
-
-function convert_km_per_hour_to_meters_per_second(kmh) {
+function convertKmPerHour2MetersPerSecond(kmh) {
     return kmh / 3.6;
 }
 
-GPS.prototype.getSpeed = function () {
-    var retVal = this.speedData;
+GPS.prototype.getSpeed = function getSpeed() {
+    const retVal = this.speedData;
     this.speedData = null;
     return retVal;
 };
 
-GPS.prototype.getPosition = function () {
-    var retVal = this.positionData;
+GPS.prototype.getPosition = function getPosition() {
+    const retVal = this.positionData;
     this.positionData = null;
     return retVal;
 };

@@ -1,4 +1,4 @@
-/*********************************************************************
+/** *******************************************************************.
  *                                                                   *
  *   Copyright 2016 Simon M. Werner                                  *
  *                                                                   *
@@ -19,20 +19,20 @@
  *   specific language governing permissions and limitations         *
  *   under the License.                                              *
  *                                                                   *
- *********************************************************************/
+ ******************************************************************** */
 
 'use strict';
 
-var StateManager = require('sailboat-utils/StateManager');
+const StateManager = require('sailboat-utils/StateManager');
 
-var MODE_MANUAL = 'manual';
-var MODE_ROBOTIC = 'robotic';
+const MODE_MANUAL = 'manual';
+const MODE_ROBOTIC = 'robotic';
 
 function RoboticState(logger) {
-    var isRoboticState = new StateManager('isRobotic');
-    var mode = MODE_MANUAL;
+    const isRoboticState = new StateManager('isRobotic');
+    let mode = MODE_MANUAL;
 
-    isRoboticState.get(function(err, state) {
+    isRoboticState.get((err, state) => {
         if (state[0]) {
             mode = MODE_ROBOTIC;
         } else {
@@ -47,7 +47,7 @@ function RoboticState(logger) {
         get isManual() {
             return mode === MODE_MANUAL;
         },
-        set: function(newMode) {
+        set(newMode) {
             if (mode === newMode) {
                 logger.info('MODE: already in the given mode: ', newMode);
             } else if (newMode === MODE_ROBOTIC) {
@@ -61,9 +61,8 @@ function RoboticState(logger) {
             } else {
                 logger.error('MODE: Invalid mode: ', newMode);
             }
-        }
+        },
     };
-
 }
 
 module.exports = RoboticState;

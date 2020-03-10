@@ -1,28 +1,36 @@
 {
-  "name": "studious-octo-guide",
-  "version": "0.0.1",
-  "main": "beaglebone/index.js",
-  "scripts": {
-    "start": "node beaglebone/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Simon M. Werner",
-  "private": true,
-  "dependencies": {
-    "ahrs": "^1.1.4",
-    "config": "^1.21.0",
-    "geomagnetism": "^0.0.2",
-    "gps": "^0.2.0",
-    "mpu9250": "^0.1.5",
-    "node-static": "^0.7.8",
-    "octalbonescript": "^1.2.2",
-    "pmtk": "^0.1.2",
-    "polo": "^0.8.1",
-    "sailboat-ai-psiphi75": "git+https://github.com/psiphi75/sailboat-ai-psiphi75.git",
-    "sailboat-utils": "git+https://github.com/psiphi75/sailboat-utils.git",
-    "serialport": "^4.0.3",
-    "web-remote-control": "^1.9.6",
-    "winston": "^2.2.0",
-    "wrc-controller": "^0.0.12"
-  }
+    "name": "studious-octo-guide",
+    "version": "0.0.1",
+    "main": "beaglebone/index.js",
+    "scripts": {
+        "start": "node beaglebone/index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Simon M. Werner",
+    "private": true,
+    "dependencies": {
+        "ahrs": "^1.2.2",
+        "config": "^1.21.0",
+        "geomagnetism": "^0.1.0",
+        "gps": "^0.5.3",
+        "mpu9250": "^0.2.2",
+        "node-static": "^0.7.11",
+        "polo": "^0.8.1",
+        "roboticscape": "0.0.8",
+        "sailboat-ai-psiphi75": "git+https://github.com/psiphi75/sailboat-ai-psiphi75.git",
+        "sailboat-utils": "git+https://github.com/psiphi75/sailboat-utils.git",
+        "serialport": "^4.0.3",
+        "web-remote-control": "=1.9.6",
+        "winston": "^2.2.0",
+        "wrc-controller": "^0.0.12"
+    },
+    "devDependencies": {
+        "eslint": "^6.8.0",
+        "eslint-config-airbnb-base": "^14.0.0",
+        "eslint-plugin-import": "^2.20.1",
+        "eslint-plugin-jsdoc": "^21.0.0",
+        "eslint-plugin-prettier": "^3.1.2",
+        "jsdoc": "^3.6.3",
+        "prettier": "^1.19.1"
+    }
 }
