@@ -2,12 +2,7 @@
 Turn your BeagleBone Green/Black into a remotely controlled device.  This project is documented [here](https://www.hackster.io/anemoi/lean-green-rc-sailing-machine-2cdde5).
 
 ## Requirements
-The following items are required for this project to run out-of-the-box.  You can hack the code to remove components as you desire:
-- [Grove 3-Axis Digital Gyroscope](http://www.seeedstudio.com/depot/Grove-3Axis-Digital-Gyro-p-750.html)
-- [Grove 3-Axis Digital Accelerometer](http://www.seeedstudio.com/wiki/Grove_-_3-Axis_Digital_Accelerometer%28%C2%B11.5g%29)
-- [Grove 3-Axis Digital Compass](http://www.seeedstudio.com/wiki/Grove_-_3-Axis_Compass_V1.0)
-- A serial GPS
-- A working GPRS modem
+This works on a BeagleBone Blue.
 
 ## Installing on your BeagleBone
 
@@ -20,6 +15,8 @@ git clone https://github.com/psiphi75/studious-octo-guide
 cd studious-octo-guide
 npm install
 ```
+
+Also read the `studious-octo-guide/beaglebone/install/README.md` for further installation instructions.
 
 ## Running the code
 
